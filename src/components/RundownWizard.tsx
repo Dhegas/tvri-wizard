@@ -751,6 +751,27 @@ export const RundownWizard: React.FC<RundownWizardProps> = ({
         </button>
       </div>
 
+      {/* Banner Mode Lihat Saja untuk Divisi Teknik */}
+      {currentUserRole === 'admin_teknik' && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            borderBottom: '1px solid #BFDBFE',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13,
+            color: '#1E3FA8',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Mode Lihat Saja (Divisi Teknik):</strong> Rundown Harian Penyiaran disusun dan dikelola oleh Divisi Program. Divisi Teknik memiliki hak akses pemantauan kerabat kerja siaran dan fasilitas teknis tanpa hak mengubah jadwal mata acara program.
+          </div>
+        </div>
+      )}
+
       {/* 4-Step Stepper Header */}
       {currentStep !== 'SUCCESS' && (
         <div
@@ -2202,16 +2223,36 @@ export const RundownWizard: React.FC<RundownWizardProps> = ({
                   <span>Cetak Lembar Resmi Rundown (A4)</span>
                 </button>
 
-                {/* Primary Action: Simpan Rundown */}
-                <button
-                  type="button"
-                  className="button-primary"
-                  onClick={() => setCurrentStep('SUCCESS')}
-                  style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8 }}
-                >
-                  <Save size={16} />
-                  <span>Simpan Rundown</span>
-                </button>
+                {/* Primary Action: Simpan Rundown (Khusus Divisi Program) */}
+                {currentUserRole === 'admin_program' ? (
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={() => setCurrentStep('SUCCESS')}
+                    style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8 }}
+                  >
+                    <Save size={16} />
+                    <span>Simpan Rundown</span>
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: '#F1F5F9',
+                      color: '#64748B',
+                      padding: '0 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      height: 42,
+                    }}
+                  >
+                    <Info size={15} />
+                    <span>Mode Lihat (Dikelola Program)</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

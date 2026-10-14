@@ -237,6 +237,7 @@ export function App() {
         <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
           {activeView === 'pola_acara' ? (
             <PolaAcaraView
+              currentUserRole={activeRole}
               onGoToRundownWithDay={(_day, _block) => {
                 setActiveDivision('program');
                 setActiveView('wizard_2_rundown');
@@ -1123,7 +1124,11 @@ export function App() {
                                 borderRadius: 12,
                               }}
                             >
-                              {sprItem.status}
+                              {sprItem.status === 'Diajukan'
+                                ? 'Diajukan (Menunggu Jawaban Teknik)'
+                                : sprItem.status === 'Ditolak'
+                                ? 'Ditolak (Perlu Revisi)'
+                                : sprItem.status}
                             </span>
                           </td>
                           <td style={{ textAlign: 'center' }}>
@@ -1150,7 +1155,27 @@ export function App() {
                                 >
                                   <Users size={12} /> Tugaskan Kru
                                 </button>
-                              ) : null}
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="button-secondary"
+                                  onClick={() => {
+                                    setSelectedSprForAssignmentId(sprItem.id);
+                                    setActiveView('wizard_4_assignment');
+                                  }}
+                                  style={{
+                                    height: 28,
+                                    fontSize: 11,
+                                    padding: '0 8px',
+                                    gap: 4,
+                                    borderColor: '#059669',
+                                    color: '#059669',
+                                  }}
+                                  title="Lihat rincian dan status penugasan kerabat kerja oleh Divisi Teknik"
+                                >
+                                  <Users size={12} /> Lihat Kru
+                                </button>
+                              )}
 
                               <button
                                 type="button"
@@ -1169,34 +1194,61 @@ export function App() {
                                   gap: 4,
                                   borderColor: '#059669',
                                   color: '#059669',
+                                  display: sprItem.status === 'Draf' ? 'none' : 'inline-flex',
                                 }}
                                 title="Lihat & cetak Surat Penunjukan Kerabat Kerja resmi Sub Koordinator Teknik"
                               >
                                 <Printer size={12} /> Surat Penunjukan
                               </button>
 
-                              <button
-                                type="button"
-                                className="button-secondary"
-                                onClick={() => setPreviewSprDocument(sprItem)}
-                                style={{ height: 28, fontSize: 11, padding: '0 8px' }}
-                                title="Cetak lembar fisik SPR resmi A4"
-                              >
-                                Cetak SPR
-                              </button>
+                              {activeDivision === 'program' ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="button-secondary"
+                                    onClick={() => setPreviewSprDocument(sprItem)}
+                                    style={{ height: 28, fontSize: 11, padding: '0 8px' }}
+                                    title="Cetak lembar fisik SPR resmi A4"
+                                  >
+                                    Cetak SPR
+                                  </button>
 
-                              <button
-                                type="button"
-                                className="button-secondary"
-                                onClick={() => {
-                                  setSelectedSprForEdit(sprItem);
-                                  setActiveView('wizard_3_spr');
-                                }}
-                                style={{ height: 28, fontSize: 11, padding: '0 8px' }}
-                                title="Buka form wizard untuk merevisi SPR ini"
-                              >
-                                Revisi
-                              </button>
+                                  <button
+                                    type="button"
+                                    className="button-secondary"
+                                    disabled={sprItem.status === 'Diajukan'}
+                                    onClick={() => {
+                                      if (sprItem.status === 'Diajukan') return;
+                                      setSelectedSprForEdit(sprItem);
+                                      setActiveView('wizard_3_spr');
+                                    }}
+                                    style={{
+                                      height: 28,
+                                      fontSize: 11,
+                                      padding: '0 8px',
+                                      opacity: sprItem.status === 'Diajukan' ? 0.45 : 1,
+                                      cursor: sprItem.status === 'Diajukan' ? 'not-allowed' : 'pointer',
+                                    }}
+                                    title={
+                                      sprItem.status === 'Diajukan'
+                                        ? 'SPR sedang diproses oleh Divisi Teknik. Anda harus menunggu jawaban dari Divisi Teknik (Penugasan Kru / Penolakan) sebelum dapat merevisi.'
+                                        : 'Buka form wizard untuk merevisi SPR ini'
+                                    }
+                                  >
+                                    Revisi
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="button-secondary"
+                                  onClick={() => setPreviewSprDocument(sprItem)}
+                                  style={{ height: 28, fontSize: 11, padding: '0 8px' }}
+                                  title="Lihat dokumen fisik SPR resmi A4 dari Divisi Program"
+                                >
+                                  Lihat SPR
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

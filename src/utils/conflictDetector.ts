@@ -856,11 +856,11 @@ export function evaluateSPRCandidates(
     );
 
     if (alreadyAssignedInThisSPR) {
-      status = 'perlu_pengecualian';
-      statusLabel = 'Perlu Pengecualian Ketua Tim';
-      reason = `Rangkap dengan ${alreadyAssignedInThisSPR.profesi} (Slot ${alreadyAssignedInThisSPR.slotNumber})`;
-      requiresException = true;
-      canBeAssigned = false;
+      status = 'tersedia_peringatan';
+      statusLabel = 'Peringatan Rangkap';
+      reason = `Merangkap dengan ${alreadyAssignedInThisSPR.profesi} (Slot ${alreadyAssignedInThisSPR.slotNumber})`;
+      requiresException = false;
+      canBeAssigned = true;
     }
 
     const primaryAct = activityItems.find((a) => a.jenis === 'Produksi') || activityItems[0];
@@ -871,17 +871,17 @@ export function evaluateSPRCandidates(
         const cell = currentDutySchedule.assignments[emp.id]?.[act.tanggal];
         if (cell?.availability) {
           const availText = formatAvailabilityReason(cell.availability);
-          status = 'tidak_tersedia';
-          statusLabel = 'Tidak Tersedia';
-          reason = `${availText} pada ${act.tanggal}`;
-          canBeAssigned = false;
+          status = 'tersedia_peringatan';
+          statusLabel = `Peringatan: ${availText}`;
+          reason = `Tercatat ${availText} pada ${act.tanggal} (tetap dapat ditugaskan)`;
+          canBeAssigned = true;
           conflictingTaskDetail = `${emp.name} berstatus ${availText}`;
           break;
         }
       }
     }
 
-    if (canBeAssigned && currentDutySchedule) {
+    if (currentDutySchedule) {
       for (const act of activityItems) {
         const cell = currentDutySchedule.assignments[emp.id]?.[act.tanggal];
         if (cell?.primaryCode) {
@@ -890,11 +890,11 @@ export function evaluateSPRCandidates(
             const win = DUTY_TIME_WINDOWS[jobMeta.window];
             bebanTugasHariIni += 1;
             if (isTimeOverlapping(win.start, win.end, act.jamMulai, act.jamSelesai)) {
-              status = 'tidak_tersedia';
-              statusLabel = 'Tidak Tersedia';
-              reason = `Sudah bertugas sebagai ${cell.primaryCode} pada siaran ${jobMeta.window}, ${win.start.slice(0, 5)} sampai ${win.end.slice(0, 5)}`;
+              status = 'tersedia_peringatan';
+              statusLabel = 'Peringatan: Dinas Siaran';
+              reason = `Jadwal shift dinas siaran: ${cell.primaryCode} (${win.start.slice(0, 5)} - ${win.end.slice(0, 5)})`;
               conflictingTaskDetail = `Dinas Siaran ${cell.primaryCode} (${win.start.slice(0, 5)} - ${win.end.slice(0, 5)})`;
-              canBeAssigned = false;
+              canBeAssigned = true;
               break;
             }
           }
@@ -902,40 +902,38 @@ export function evaluateSPRCandidates(
       }
     }
 
-    if (canBeAssigned) {
-      for (const spr of allSPRs) {
-        if (spr.id === currentSprId) continue;
-        if (spr.status === 'Dibatalkan' || spr.status === 'Ditolak') continue;
+    for (const spr of allSPRs) {
+      if (spr.id === currentSprId) continue;
+      if (spr.status === 'Dibatalkan' || spr.status === 'Ditolak') continue;
 
-        const hasAssignmentInSpr = spr.kebutuhanCrewList.some(
-          (need) => need.profesi === emp.division || emp.jobCodes.includes(need.profesi)
-        );
+      const hasAssignmentInSpr = spr.kebutuhanCrewList.some(
+        (need) => need.profesi === emp.division || emp.jobCodes.includes(need.profesi)
+      );
 
-        for (const actOther of spr.kegiatanList) {
-          if (actOther.tanggal === targetDate) {
-            bebanTugasHariIni += 1;
-          }
-          for (const actMy of activityItems) {
-            if (actOther.tanggal === actMy.tanggal) {
-              if (isTimeOverlapping(actMy.jamMulai, actMy.jamSelesai, actOther.jamMulai, actOther.jamSelesai)) {
-                if (hasAssignmentInSpr || spr.totalCrewAssigned > 0) {
-                  status = 'tidak_tersedia';
-                  statusLabel = 'Tidak Tersedia';
-                  reason = `Sudah bertugas pada Produksi ${spr.judul || spr.programName}, ${actOther.jamMulai.slice(0, 5)} sampai ${actOther.jamSelesai.slice(0, 5)}`;
-                  conflictingTaskDetail = `Produksi ${spr.judul || spr.programName} (${actOther.jamMulai.slice(0, 5)} - ${actOther.jamSelesai.slice(0, 5)})`;
-                  canBeAssigned = false;
-                  break;
-                }
+      for (const actOther of spr.kegiatanList) {
+        if (actOther.tanggal === targetDate) {
+          bebanTugasHariIni += 1;
+        }
+        for (const actMy of activityItems) {
+          if (actOther.tanggal === actMy.tanggal) {
+            if (isTimeOverlapping(actMy.jamMulai, actMy.jamSelesai, actOther.jamMulai, actOther.jamSelesai)) {
+              if (hasAssignmentInSpr || spr.totalCrewAssigned > 0) {
+                status = 'tersedia_peringatan';
+                statusLabel = 'Peringatan: Acara Lain';
+                reason = `Sudah bertugas pada ${spr.judul || spr.programName} (${actOther.jamMulai.slice(0, 5)} - ${actOther.jamSelesai.slice(0, 5)})`;
+                conflictingTaskDetail = `Produksi ${spr.judul || spr.programName} (${actOther.jamMulai.slice(0, 5)} - ${actOther.jamSelesai.slice(0, 5)})`;
+                canBeAssigned = true;
+                break;
               }
             }
           }
-          if (!canBeAssigned) break;
         }
-        if (!canBeAssigned) break;
+        if (conflictingTaskDetail) break;
       }
+      if (conflictingTaskDetail) break;
     }
 
-    if (canBeAssigned && currentDutySchedule && primaryAct) {
+    if (currentDutySchedule && primaryAct) {
       const prevDateObj = new Date(primaryAct.tanggal);
       prevDateObj.setDate(prevDateObj.getDate() - 1);
       const prevDateStr = prevDateObj.toISOString().split('T')[0];
@@ -945,7 +943,7 @@ export function evaluateSPRCandidates(
         const actStartMin = timeToMinutes(primaryAct.jamMulai);
         if (actStartMin < 11 * 60) {
           status = 'tersedia_peringatan';
-          statusLabel = 'Tersedia dengan Peringatan';
+          statusLabel = 'Peringatan: Jeda Istirahat';
           reason = `Jeda istirahat 4 jam setelah dinas malam (${prevCell.primaryCode}) kemarin`;
         }
       }

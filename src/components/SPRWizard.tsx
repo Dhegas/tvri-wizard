@@ -1,12 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Film,
   CheckCircle2,
   AlertTriangle,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
   ArrowLeft,
   ArrowRight,
   Printer,
@@ -15,6 +11,7 @@ import {
   Radio,
   Send,
   XCircle,
+  Info,
 } from 'lucide-react';
 import type {
   SPRDocument,
@@ -70,16 +67,6 @@ const OFFICIAL_PROFESSIONS = [
   'Pengemudi',
 ];
 
-const ACTIVITY_PHASES: ProductionActivityType[] = [
-  'Survei',
-  'Production Meeting',
-  'Hunting',
-  'Setting peralatan',
-  'Produksi',
-  'Pasca produksi',
-  'On air',
-];
-
 export const SPRWizard: React.FC<SPRWizardProps> = ({
   currentUserRole,
   onClose,
@@ -88,7 +75,9 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
   initialProgramFromPola = null,
 }) => {
   // Stepper: S1 -> S2 -> S3 -> S4 -> SUCCESS
-  const [currentStep, setCurrentStep] = useState<'S1' | 'S2' | 'S3' | 'S4' | 'SUCCESS'>('S1');
+  const [currentStep, setCurrentStep] = useState<'S1' | 'S2' | 'S3' | 'S4' | 'SUCCESS'>(() => {
+    return currentUserRole === 'admin_teknik' ? 'S4' : 'S1';
+  });
 
   // S1 State (Produksi)
   const isEditingRevision = Boolean(existingSpr && existingSpr.versi >= 1);
@@ -125,34 +114,154 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
   const divisiPeminta: 'Program' | 'Berita' =
     currentUserRole === 'admin_berita' ? 'Berita' : 'Program';
 
-  // S2 State (Kegiatan List)
-  const [kegiatanList, setKegiatanList] = useState<ProductionActivityItem[]>(() => {
-    if (existingSpr?.kegiatanList && existingSpr.kegiatanList.length > 0) {
-      return existingSpr.kegiatanList;
-    }
-    return [
-      {
-        id: `act-${Date.now()}-1`,
-        jenis: 'Produksi',
-        tanggal: '2026-10-14',
-        jamMulai: '13:30:00',
-        jamSelesai: '16:00:00',
-        lokasi: 'Studio 3 (Podcast & Mimbar Agama)',
-        catatanCrew: 'Dialog utama studio',
-      },
-      {
-        id: `act-${Date.now()}-2`,
-        jenis: 'Setting peralatan',
-        tanggal: '2026-10-14',
-        jamMulai: '11:00:00',
-        jamSelesai: '13:00:00',
-        lokasi: 'Studio 3 (Podcast & Mimbar Agama)',
-        catatanCrew: 'Tata lighting & audio check',
-      },
+  // Stable document number state
+  const [nomorSurat] = useState<string>(
+    () => existingSpr?.nomorSurat || `SPR/${divisiPeminta.toUpperCase()}/2026/10/0${Math.floor(Math.random() * 80 + 20)}`
+  );
+
+  // Jadwal & Lokasi Produksi Utama (Tabel 1 Lembar Cetak Fisik SPR)
+  const existingMainProd = existingSpr?.kegiatanList?.find((k) => {
+    const j = k.jenis.toLowerCase();
+    return (j === 'produksi' || j.includes('rekam') || j.includes('siaran') || j === 'on air') && !j.includes('pasca');
+  }) || existingSpr?.kegiatanList?.[0];
+
+  const [tanggalProduksi, setTanggalProduksi] = useState<string>(
+    () => existingMainProd?.tanggal || '2026-10-14'
+  );
+  const [jamMulaiProduksi, setJamMulaiProduksi] = useState<string>(
+    () => existingMainProd?.jamMulai || '13:30:00'
+  );
+  const [jamSelesaiProduksi, setJamSelesaiProduksi] = useState<string>(
+    () => existingMainProd?.jamSelesai || '16:00:00'
+  );
+  const [lokasiProduksi, setLokasiProduksi] = useState<string>(
+    () => existingMainProd?.lokasi || 'Studio 3 (Podcast & Mimbar Agama)'
+  );
+  const [catatanProduksi, setCatatanProduksi] = useState<string>(
+    () => existingMainProd?.catatanCrew || 'Dialog utama studio'
+  );
+
+  // S3 State: 6 Tahapan Kegiatan Baku (Tabel 2 Lembar Cetak Fisik SPR)
+  const [tahapanRows, setTahapanRows] = useState<Array<{
+    no: number;
+    label: string;
+    tanggal: string;
+    jamMulai: string;
+    jamSelesai: string;
+    tempat: string;
+    crew: string;
+  }>>(() => {
+    const defaultStages = [
+      { no: 1, label: 'Survey', keys: ['survey', 'survei', 'peninjauan'] },
+      { no: 2, label: 'Production Meeting', keys: ['production meeting', 'meeting', 'rapat'] },
+      { no: 3, label: 'Hunting', keys: ['hunting'] },
+      { no: 4, label: 'Setting', keys: ['setting', 'persiapan alat', 'persiapan'] },
+      { no: 5, label: 'Pasca Produksi', keys: ['pasca', 'editing', 'mastering', 'vtr'] },
+      { no: 6, label: 'On Air', keys: ['on air', 'onair', 'tayang', 'siaran langsung'] },
     ];
+
+    return defaultStages.map((st) => {
+      const match = existingSpr?.kegiatanList?.find((k) => {
+        const j = k.jenis.toLowerCase();
+        return st.keys.some((kKey) => j.includes(kKey));
+      });
+
+      if (match) {
+        return {
+          no: st.no,
+          label: st.label,
+          tanggal: match.tanggal || '',
+          jamMulai: match.jamMulai || '',
+          jamSelesai: match.jamSelesai || '',
+          tempat: match.lokasi || '',
+          crew: match.catatanCrew || '',
+        };
+      }
+
+      // Default initial mock if no existing SPR
+      if (st.label === 'Setting') {
+        return {
+          no: st.no,
+          label: st.label,
+          tanggal: '2026-10-14',
+          jamMulai: '11:00:00',
+          jamSelesai: '13:00:00',
+          tempat: 'Studio 3 (Podcast & Mimbar Agama)',
+          crew: 'Tata lighting & audio check',
+        };
+      }
+      if (st.label === 'Pasca Produksi') {
+        return {
+          no: st.no,
+          label: st.label,
+          tanggal: '2026-10-14',
+          jamMulai: '09:00:00',
+          jamSelesai: '12:00:00',
+          tempat: 'Ruang Edit Pasca Produksi',
+          crew: 'Editing & mastering',
+        };
+      }
+
+      return {
+        no: st.no,
+        label: st.label,
+        tanggal: '',
+        jamMulai: '',
+        jamSelesai: '',
+        tempat: '',
+        crew: '',
+      };
+    });
   });
 
-  // S3 State (Kebutuhan Kru per Profesi & Sistem Peralatan)
+  // Construct unified kegiatanList for downstream consumers (conflict detector, assignment, print)
+  const kegiatanList: ProductionActivityItem[] = useMemo(() => {
+    const list: ProductionActivityItem[] = [
+      {
+        id: 'act-main-prod',
+        jenis: (jenisKegiatan as any) || 'Produksi',
+        tanggal: tanggalProduksi,
+        jamMulai: jamMulaiProduksi,
+        jamSelesai: jamSelesaiProduksi,
+        lokasi: lokasiProduksi,
+        catatanCrew: catatanProduksi,
+      },
+    ];
+
+    tahapanRows.forEach((row) => {
+      if (row.tanggal.trim() || row.jamMulai.trim() || row.tempat.trim() || row.crew.trim()) {
+        let mappedType: ProductionActivityType = 'Produksi';
+        if (row.label === 'Survey') mappedType = 'Survei';
+        else if (row.label === 'Production Meeting') mappedType = 'Production Meeting';
+        else if (row.label === 'Hunting') mappedType = 'Hunting';
+        else if (row.label === 'Setting') mappedType = 'Setting peralatan';
+        else if (row.label === 'Pasca Produksi') mappedType = 'Pasca produksi';
+        else if (row.label === 'On Air') mappedType = 'On air';
+
+        list.push({
+          id: `act-stage-${row.no}`,
+          jenis: mappedType,
+          tanggal: row.tanggal || tanggalProduksi,
+          jamMulai: row.jamMulai || '08:00:00',
+          jamSelesai: row.jamSelesai || '10:00:00',
+          lokasi: row.tempat,
+          catatanCrew: row.crew,
+        });
+      }
+    });
+
+    return list;
+  }, [
+    jenisKegiatan,
+    tanggalProduksi,
+    jamMulaiProduksi,
+    jamSelesaiProduksi,
+    lokasiProduksi,
+    catatanProduksi,
+    tahapanRows,
+  ]);
+
+  // S2 State (Kebutuhan Kru per Profesi & Sistem Peralatan)
   const [kebutuhanCrewList, setKebutuhanCrewList] = useState<ProductionCrewNeed[]>(() => {
     if (existingSpr?.kebutuhanCrewList && existingSpr.kebutuhanCrewList.length > 0) {
       return existingSpr.kebutuhanCrewList;
@@ -196,49 +305,84 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
   // Modal Cetak Dokumen Fisik SPR
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
 
+  // Synchronize state when existingSpr or initialProgramFromPola prop changes
+  useEffect(() => {
+    if (existingSpr) {
+      setProgramName(existingSpr.programName);
+      setJudul(existingSpr.judul);
+      setJenisKegiatan(existingSpr.jenisKegiatan);
+      setFormatAcara(existingSpr.formatAcara);
+      setDurasi(existingSpr.durasi);
+      setPengisiAcara(existingSpr.pengisiAcara || '');
+      setProduser(existingSpr.produser);
+      setIsMendesak(existingSpr.isMendesak || false);
+      if (existingSpr.kegiatanList && existingSpr.kegiatanList.length > 0) {
+        const main = existingSpr.kegiatanList.find((k) => {
+          const j = k.jenis.toLowerCase();
+          return (j === 'produksi' || j.includes('rekam') || j.includes('siaran') || j === 'on air') && !j.includes('pasca');
+        }) || existingSpr.kegiatanList[0];
+
+        if (main) {
+          setTanggalProduksi(main.tanggal);
+          setJamMulaiProduksi(main.jamMulai);
+          setJamSelesaiProduksi(main.jamSelesai);
+          setLokasiProduksi(main.lokasi || 'Studio 3 (Podcast & Mimbar Agama)');
+          setCatatanProduksi(main.catatanCrew || '');
+        }
+
+        const defaultStages = [
+          { no: 1, label: 'Survey', keys: ['survey', 'survei', 'peninjauan'] },
+          { no: 2, label: 'Production Meeting', keys: ['production meeting', 'meeting', 'rapat'] },
+          { no: 3, label: 'Hunting', keys: ['hunting'] },
+          { no: 4, label: 'Setting', keys: ['setting', 'persiapan alat', 'persiapan'] },
+          { no: 5, label: 'Pasca Produksi', keys: ['pasca', 'editing', 'mastering', 'vtr'] },
+          { no: 6, label: 'On Air', keys: ['on air', 'onair', 'tayang', 'siaran langsung'] },
+        ];
+
+        setTahapanRows(
+          defaultStages.map((st) => {
+            const match = existingSpr.kegiatanList.find((k) => {
+              const j = k.jenis.toLowerCase();
+              return st.keys.some((kKey) => j.includes(kKey));
+            });
+            return {
+              no: st.no,
+              label: st.label,
+              tanggal: match?.tanggal || '',
+              jamMulai: match?.jamMulai || '',
+              jamSelesai: match?.jamSelesai || '',
+              tempat: match?.lokasi || '',
+              crew: match?.catatanCrew || '',
+            };
+          })
+        );
+      }
+      if (existingSpr.kebutuhanCrewList && existingSpr.kebutuhanCrewList.length > 0) {
+        setKebutuhanCrewList(existingSpr.kebutuhanCrewList);
+      }
+      if (existingSpr.sistemPeralatan) {
+        setSistemPeralatan({
+          sistem: existingSpr.sistemPeralatan.sistem,
+          jumlahKamera: existingSpr.sistemPeralatan.jumlahKamera || 3,
+          keterangan: existingSpr.sistemPeralatan.keterangan || '',
+        });
+      }
+    } else if (initialProgramFromPola) {
+      setProgramName(initialProgramFromPola.programName);
+      setJudul(`${initialProgramFromPola.programName}: Produksi Reguler Pola Acara`);
+      setFormatAcara(initialProgramFromPola.format || 'Dialog');
+      setDurasi(initialProgramFromPola.duration || '0:30:00');
+    }
+  }, [existingSpr, initialProgramFromPola]);
+
   // Total crew needed counter
   const totalCrewNeeded = useMemo(() => {
     return kebutuhanCrewList.reduce((acc, curr) => acc + (curr.jumlah || 0), 0);
   }, [kebutuhanCrewList]);
 
-  // S2 Add/Delete Activity
-  const handleAddKegiatan = () => {
-    const lastItem = kegiatanList[kegiatanList.length - 1];
-    const newDate = lastItem ? lastItem.tanggal : '2026-10-14';
-    const newItem: ProductionActivityItem = {
-      id: `act-${Date.now()}`,
-      jenis: 'Pasca produksi',
-      tanggal: newDate,
-      jamMulai: '09:00:00',
-      jamSelesai: '12:00:00',
-      lokasi: 'Ruang Edit Pasca Produksi',
-      catatanCrew: 'Editing & mastering',
-    };
-    setKegiatanList((prev) => [...prev, newItem]);
-  };
-
-  const handleDeleteKegiatan = (id: string) => {
-    if (kegiatanList.length <= 1) return;
-    setKegiatanList((prev) => prev.filter((k) => k.id !== id));
-  };
-
-  const handleMoveKegiatan = (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === kegiatanList.length - 1) return;
-    const newArr = [...kegiatanList];
-    const targetIdx = direction === 'up' ? index - 1 : index + 1;
-    const temp = newArr[index];
-    newArr[index] = newArr[targetIdx];
-    newArr[targetIdx] = temp;
-    setKegiatanList(newArr);
-  };
-
-  const handleUpdateKegiatan = (id: string, updates: Partial<ProductionActivityItem>) => {
-    setKegiatanList((prev) =>
-      prev.map((k) => {
-        if (k.id !== id) return k;
-        return { ...k, ...updates };
-      })
+  const handleUpdateTahapanRow = (no: number, field: 'tanggal' | 'jamMulai' | 'jamSelesai' | 'tempat' | 'crew', val: string) => {
+    setTahapanRows((prev) =>
+      prev.map((r) => (r.no === no ? { ...r, [field]: val } : r))
     );
   };
 
@@ -273,34 +417,26 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
     );
   };
 
-  // Analyze S2 studio warnings
-  const analyzedKegiatan = useMemo(() => {
-    return kegiatanList.map((act) => {
-      let warningMsg = '';
-      if (act.lokasi) {
-        const warn = checkStudioOverlapWarning(
-          act.lokasi,
-          act.tanggal,
-          act.jamMulai,
-          act.jamSelesai,
-          MOCK_SPR_DOCUMENTS,
-          existingSpr?.id
-        );
-        if (warn) warningMsg = warn;
-      }
-      return {
-        ...act,
-        hasWarning: Boolean(warningMsg),
-        warningMessage: warningMsg,
-      };
-    });
-  }, [kegiatanList, existingSpr]);
+  // Studio conflict warning for primary production schedule
+  const studioConflictWarning = useMemo(() => {
+    if (lokasiProduksi && tanggalProduksi && jamMulaiProduksi && jamSelesaiProduksi) {
+      return checkStudioOverlapWarning(
+        lokasiProduksi,
+        tanggalProduksi,
+        jamMulaiProduksi,
+        jamSelesaiProduksi,
+        MOCK_SPR_DOCUMENTS,
+        existingSpr?.id
+      );
+    }
+    return '';
+  }, [lokasiProduksi, tanggalProduksi, jamMulaiProduksi, jamSelesaiProduksi, existingSpr]);
 
   // Construct current SPR document object
   const currentSprDocument: SPRDocument = useMemo(() => {
     return {
       id: existingSpr?.id || `spr-2026-10-${Date.now().toString().slice(-4)}`,
-      nomorSurat: existingSpr?.nomorSurat || `SPR/${divisiPeminta.toUpperCase()}/2026/10/0${Math.floor(Math.random() * 80 + 20)}`,
+      nomorSurat,
       versi: currentVersion,
       programName,
       judul,
@@ -326,6 +462,7 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
     };
   }, [
     existingSpr,
+    nomorSurat,
     currentVersion,
     programName,
     judul,
@@ -345,9 +482,17 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
   ]);
 
   // Validation
-  const s1Valid = Boolean(programName.trim() && judul.trim() && durasi.trim() && produser.trim());
-  const s2Valid = kegiatanList.length > 0 && kegiatanList.every((k) => k.jamSelesai > k.jamMulai);
-  const s3Valid = totalCrewNeeded > 0;
+  const s1Valid = Boolean(
+    programName.trim() &&
+    judul.trim() &&
+    durasi.trim() &&
+    produser.trim() &&
+    tanggalProduksi.trim() &&
+    jamMulaiProduksi.trim() &&
+    jamSelesaiProduksi.trim()
+  );
+  const s2Valid = totalCrewNeeded > 0;
+  const s3Valid = true;
 
   // Handle final submission in S4
   const handleFinalSubmit = () => {
@@ -438,15 +583,79 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="button-secondary"
-          style={{ height: 34, fontSize: 13, padding: '0 12px' }}
-        >
-          Tutup
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowPrintModal(true)}
+            className="button-secondary"
+            style={{
+              height: 34,
+              fontSize: 12,
+              padding: '0 12px',
+              gap: 6,
+              display: 'flex',
+              alignItems: 'center',
+              borderColor: '#1E3FA8',
+              color: '#1E3FA8',
+            }}
+            title="Pratinjau lembar fisik dokumen resmi SPR (A4)"
+          >
+            <Printer size={14} />
+            <span>Pratinjau Lembar Fisik</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="button-secondary"
+            style={{ height: 34, fontSize: 13, padding: '0 12px' }}
+          >
+            Tutup
+          </button>
+        </div>
       </div>
+
+      {/* Banner Mode Lihat Saja untuk Divisi Teknik */}
+      {currentUserRole === 'admin_teknik' && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            borderBottom: '1px solid #BFDBFE',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13,
+            color: '#1E3FA8',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Mode Lihat Saja (Divisi Teknik):</strong> Dokumen Surat Permintaan Kru & Peralatan (SPR) dibuat dan diajukan oleh Divisi Program. Divisi Teknik dapat memeriksa rincian kebutuhan dan mencetak berkas, sedangkan penugasan kru dilakukan melalui menu <strong>Penugasan SPR (W4)</strong>.
+          </div>
+        </div>
+      )}
+
+      {/* Banner Menunggu Jawaban Teknik untuk Divisi Program */}
+      {existingSpr?.status === 'Diajukan' && currentUserRole === 'admin_program' && (
+        <div
+          style={{
+            backgroundColor: '#FAF5FF',
+            borderBottom: '1px solid #DDD6FE',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13,
+            color: '#6D28D9',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Menunggu Jawaban Divisi Teknik:</strong> Berkas SPR ini telah diajukan ke Sub Koordinator Teknik untuk plotting kru dan penerbitan Surat Penunjukan. Dokumen dalam mode baca saja sampai ada jawaban penugasan atau pengembalian revisi dari Divisi Teknik.
+          </div>
+        </div>
+      )}
 
       {/* Stepper Header (S1 to S4) */}
       {currentStep !== 'SUCCESS' && (
@@ -460,8 +669,8 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
         >
           {[
             { id: 'S1', label: '1. Detail Produksi' },
-            { id: 'S2', label: '2. Tahapan Kegiatan' },
-            { id: 'S3', label: '3. Kebutuhan Kru & Alat' },
+            { id: 'S2', label: '2. Kebutuhan Kru & Alat' },
+            { id: 'S3', label: '3. Tahapan Kegiatan' },
             { id: 'S4', label: '4. Tinjau & Kirim SPR' },
           ].map((st, i) => {
             const stepOrder = ['S1', 'S2', 'S3', 'S4'];
@@ -689,6 +898,114 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
               </div>
             </div>
 
+            {/* Jadwal & Lokasi Pelaksanaan Produksi Utama (Tabel 1 Lembar Cetak Fisik SPR) */}
+            <div
+              style={{
+                backgroundColor: '#FAF5FF',
+                border: '1px solid #E9D5FF',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px 18px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Film size={18} color="#7C3AED" />
+                <div>
+                  <strong style={{ fontSize: '0.9375rem', color: '#581C87' }}>
+                    Jadwal & Lokasi Pelaksanaan Produksi Utama
+                  </strong>
+                  <div style={{ fontSize: 11, color: '#7E22CE' }}>
+                    Informasi ini dicetak langsung pada kolom utama tabel fisik SPR resmi TVRI Bali.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 2fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                    Tanggal Produksi <span style={{ color: 'var(--error)' }}>*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input-default"
+                    value={tanggalProduksi}
+                    onChange={(e) => setTanggalProduksi(e.target.value)}
+                    style={{ width: '100%', height: 38, fontSize: 12 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                    Waktu (Mulai - Selesai) <span style={{ color: 'var(--error)' }}>*</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      type="text"
+                      className="input-default"
+                      value={jamMulaiProduksi}
+                      onChange={(e) => setJamMulaiProduksi(e.target.value)}
+                      placeholder="13:30:00"
+                      style={{ width: '50%', height: 38, fontSize: 12, fontFamily: 'var(--font-mono)' }}
+                    />
+                    <span>-</span>
+                    <input
+                      type="text"
+                      className="input-default"
+                      value={jamSelesaiProduksi}
+                      onChange={(e) => setJamSelesaiProduksi(e.target.value)}
+                      placeholder="16:00:00"
+                      style={{ width: '50%', height: 38, fontSize: 12, fontFamily: 'var(--font-mono)' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                    Tempat / Studio Pelaksanaan <span style={{ color: 'var(--error)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="spr-studios-list"
+                    className="input-default"
+                    value={lokasiProduksi}
+                    onChange={(e) => setLokasiProduksi(e.target.value)}
+                    placeholder="Pilih atau tulis studio / lokasi..."
+                    style={{ width: '100%', height: 38, fontSize: 12 }}
+                  />
+                  <datalist id="spr-studios-list">
+                    <option value="Studio 1 (Utama)" />
+                    <option value="Studio 2 (Musik & Budaya)" />
+                    <option value="Studio 3 (Podcast & Mimbar Agama)" />
+                    <option value="Ruang Rapat Program" />
+                    <option value="Ruang Edit Pasca Produksi" />
+                    <option value="Halaman Luar TVRI Bali (Outdoor)" />
+                    <option value="Lapangan / Remote Location" />
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Studio Overlap Warning Banner */}
+              {studioConflictWarning && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '8px 12px',
+                    backgroundColor: 'var(--warning-container)',
+                    color: 'var(--on-warning-container)',
+                    borderRadius: 4,
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <AlertTriangle size={16} />
+                  <div>
+                    <strong>Peringatan Pemakaian Studio:</strong> {studioConflictWarning}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Toggle Saklar Mendesak (SAD v1.1 line 791) */}
             <div
               style={{
@@ -763,7 +1080,7 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
                 onClick={() => setCurrentStep('S2')}
                 style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
               >
-                <span>Lanjut ke kegiatan</span>
+                <span>Lanjut ke Kebutuhan Kru & Alat</span>
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -771,276 +1088,9 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
         )}
 
         {/* ===================================================================
-            STEP S2: TAHAPAN KEGIATAN PRODUKSI (SAD v1.1 lines 799-820)
+            STEP S2: KEBUTUHAN CREW & PERALATAN (SAD v1.1 lines 821-845)
             =================================================================== */}
         {currentStep === 'S2' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
-                  Jadwal & Lokasi Tahapan Kegiatan Produksi
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--muted)' }}>
-                  Menyatakan kapan dan di mana setiap kegiatan berlangsung agar Teknik dapat memeriksa bentrok per kegiatan.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="button-primary"
-                onClick={handleAddKegiatan}
-                style={{ height: 36, fontSize: 13, padding: '0 14px', gap: 6, backgroundColor: '#7C3AED' }}
-              >
-                <Plus size={15} /> Tambah Kegiatan
-              </button>
-            </div>
-
-            {/* List of Production Activity Rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {analyzedKegiatan.map((act, index) => (
-                <div
-                  key={act.id}
-                  className={`rundown-item-row ${act.hasWarning ? 'has-warning' : ''}`}
-                  style={{ padding: 14 }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 10,
-                      borderBottom: '1px solid #F1F5F9',
-                      paddingBottom: 6,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          backgroundColor: '#EDE9FE',
-                          color: '#7C3AED',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {index + 1}
-                      </span>
-                      <strong style={{ fontSize: 13, color: 'var(--ink)' }}>Tahap {act.jenis}</strong>
-
-                      <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
-                        <button
-                          type="button"
-                          className="reorder-action-btn"
-                          disabled={index === 0}
-                          onClick={() => handleMoveKegiatan(index, 'up')}
-                          title="Naikkan urutan"
-                        >
-                          <ChevronUp size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="reorder-action-btn"
-                          disabled={index === kegiatanList.length - 1}
-                          onClick={() => handleMoveKegiatan(index, 'down')}
-                          title="Turunkan urutan"
-                        >
-                          <ChevronDown size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={kegiatanList.length <= 1}
-                      onClick={() => handleDeleteKegiatan(act.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: kegiatanList.length <= 1 ? '#CBD5E1' : 'var(--error)',
-                        cursor: kegiatanList.length <= 1 ? 'not-allowed' : 'pointer',
-                        padding: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        fontSize: 12,
-                      }}
-                    >
-                      <Trash2 size={14} /> Hapus
-                    </button>
-                  </div>
-
-                  {/* Grid Fields */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr 2fr 2fr',
-                      gap: 10,
-                      alignItems: 'center',
-                    }}
-                  >
-                    {/* Jenis Kegiatan */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Jenis Tahap <span style={{ color: 'var(--error)' }}>*</span>
-                      </label>
-                      <select
-                        className="input-default"
-                        value={act.jenis}
-                        onChange={(e) =>
-                          handleUpdateKegiatan(act.id, {
-                            jenis: e.target.value as ProductionActivityType,
-                          })
-                        }
-                        style={{ width: '100%', height: 36, fontSize: 12 }}
-                      >
-                        {ACTIVITY_PHASES.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Tanggal */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Tanggal <span style={{ color: 'var(--error)' }}>*</span>
-                      </label>
-                      <input
-                        type="date"
-                        className="input-default"
-                        value={act.tanggal}
-                        onChange={(e) => handleUpdateKegiatan(act.id, { tanggal: e.target.value })}
-                        style={{ width: '100%', height: 36, fontSize: 12 }}
-                      />
-                    </div>
-
-                    {/* Jam Mulai */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Mulai <span style={{ color: 'var(--error)' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="input-default"
-                        value={act.jamMulai}
-                        onChange={(e) => handleUpdateKegiatan(act.id, { jamMulai: e.target.value })}
-                        style={{ width: '100%', height: 36, fontFamily: 'var(--font-mono)', fontSize: 12 }}
-                      />
-                    </div>
-
-                    {/* Jam Selesai */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Selesai <span style={{ color: 'var(--error)' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="input-default"
-                        value={act.jamSelesai}
-                        onChange={(e) => handleUpdateKegiatan(act.id, { jamSelesai: e.target.value })}
-                        style={{ width: '100%', height: 36, fontFamily: 'var(--font-mono)', fontSize: 12 }}
-                      />
-                    </div>
-
-                    {/* Lokasi */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Tempat / Lokasi
-                      </label>
-                      <input
-                        type="text"
-                        list="loc-master-list"
-                        className="input-default"
-                        value={act.lokasi || ''}
-                        onChange={(e) => handleUpdateKegiatan(act.id, { lokasi: e.target.value })}
-                        placeholder="Pilih lokasi..."
-                        style={{ width: '100%', height: 36, fontSize: 12 }}
-                      />
-                      <datalist id="loc-master-list">
-                        {MOCK_LOCATIONS.map((loc) => (
-                          <option key={loc.id} value={loc.name} />
-                        ))}
-                        <option value="Studio 3 TVRI Bali" />
-                        <option value="Ruang VTR" />
-                        <option value="Desa Tenganan Karangasem" />
-                        <option value="Lapangan Renon Denpasar" />
-                      </datalist>
-                    </div>
-
-                    {/* Catatan Crew */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        Catatan Crew / Keterangan
-                      </label>
-                      <input
-                        type="text"
-                        className="input-default"
-                        value={act.catatanCrew || ''}
-                        onChange={(e) => handleUpdateKegiatan(act.id, { catatanCrew: e.target.value })}
-                        placeholder="Contoh: Editor, Kamera lapangan..."
-                        style={{ width: '100%', height: 36, fontSize: 12 }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Warning Notice if studio conflict */}
-                  {act.hasWarning && (
-                    <div
-                      style={{
-                        marginTop: 10,
-                        padding: '6px 12px',
-                        backgroundColor: 'var(--warning-container)',
-                        color: 'var(--on-warning-container)',
-                        borderRadius: 4,
-                        fontSize: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      <AlertTriangle size={15} />
-                      <strong>Peringatan Pemakaian Studio:</strong> {act.warningMessage}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={() => setCurrentStep('S1')}
-                style={{ height: 42, padding: '0 20px', gap: 6 }}
-              >
-                <ArrowLeft size={16} /> Kembali ke Detail Produksi
-              </button>
-
-              <button
-                type="button"
-                className="button-primary"
-                disabled={!s2Valid}
-                onClick={() => setCurrentStep('S3')}
-                style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
-              >
-                <span>Lanjut ke kebutuhan</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================================
-            STEP S3: KEBUTUHAN CREW & PERALATAN (SAD v1.1 lines 821-845)
-            =================================================================== */}
-        {currentStep === 'S3' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
             {/* Bagian 1: Kebutuhan Kru per Profesi */}
             <div className="panel-summary" style={{ padding: 20 }}>
@@ -1302,10 +1352,252 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
               <button
                 type="button"
                 className="button-secondary"
+                onClick={() => setCurrentStep('S1')}
+                style={{ height: 42, padding: '0 20px', gap: 6 }}
+              >
+                <ArrowLeft size={16} /> Kembali ke Detail Produksi
+              </button>
+
+              <button
+                type="button"
+                className="button-primary"
+                disabled={!s2Valid}
+                onClick={() => setCurrentStep('S3')}
+                style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
+              >
+                <span>Lanjut ke Tahapan Kegiatan</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            STEP S3: TAHAPAN KEGIATAN PRODUKSI (Formulir Resmi Tabel 2 TVRI Bali)
+            =================================================================== */}
+        {currentStep === 'S3' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
+                  Jadwal Tahapan Kegiatan Produksi
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                  Isi jadwal pelaksanaan untuk setiap tahapan kegiatan sesuai format tabel lembar fisik SPR TVRI Bali. Baris yang tidak dilaksanakan dapat dikosongkan.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: '#EDE9FE',
+                  color: '#6D28D9',
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                6 Tahapan Resmi TVRI Bali
+              </div>
+            </div>
+
+            {/* Tabel Fisik 6 Tahapan Sesuai Format SPR Resmi */}
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                border: '1.5px solid #1E293B',
+                borderRadius: 4,
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: 12,
+                  textAlign: 'left',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      backgroundColor: '#F1F5F9',
+                      borderBottom: '2px solid #1E293B',
+                      color: '#0F172A',
+                      fontWeight: 800,
+                      letterSpacing: '0.03em',
+                    }}
+                  >
+                    <th style={{ width: 50, padding: '10px 8px', textAlign: 'center', borderRight: '1px solid #1E293B' }}>
+                      NO.
+                    </th>
+                    <th style={{ width: 190, padding: '10px 12px', borderRight: '1px solid #1E293B' }}>
+                      KEGIATAN
+                    </th>
+                    <th style={{ width: 170, padding: '10px 12px', borderRight: '1px solid #1E293B' }}>
+                      HARI/TANGGAL
+                    </th>
+                    <th style={{ width: 170, padding: '10px 12px', borderRight: '1px solid #1E293B' }}>
+                      PUKUL
+                    </th>
+                    <th style={{ width: 220, padding: '10px 12px', borderRight: '1px solid #1E293B' }}>
+                      TEMPAT
+                    </th>
+                    <th style={{ padding: '10px 12px' }}>
+                      CREW
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tahapanRows.map((row, idx) => (
+                    <tr
+                      key={row.no}
+                      style={{
+                        borderBottom: idx < tahapanRows.length - 1 ? '1px solid #CBD5E1' : 'none',
+                        backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC',
+                      }}
+                    >
+                      {/* NO */}
+                      <td
+                        style={{
+                          padding: '8px',
+                          textAlign: 'center',
+                          fontWeight: 700,
+                          borderRight: '1px solid #CBD5E1',
+                          color: '#1E293B',
+                        }}
+                      >
+                        {row.no}
+                      </td>
+
+                      {/* KEGIATAN */}
+                      <td
+                        style={{
+                          padding: '8px 12px',
+                          fontWeight: 700,
+                          borderRight: '1px solid #CBD5E1',
+                          color: '#0F172A',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {row.label}
+                      </td>
+
+                      {/* HARI/TANGGAL */}
+                      <td style={{ padding: '6px 8px', borderRight: '1px solid #CBD5E1' }}>
+                        <input
+                          type="text"
+                          className="input-default"
+                          value={row.tanggal}
+                          onChange={(e) => handleUpdateTahapanRow(row.no, 'tanggal', e.target.value)}
+                          placeholder="Contoh: 14 Oktober 2026"
+                          style={{
+                            width: '100%',
+                            height: 34,
+                            fontSize: 12,
+                            padding: '4px 8px',
+                            backgroundColor: row.tanggal ? '#FFFFFF' : '#FAFAFA',
+                          }}
+                        />
+                      </td>
+
+                      {/* PUKUL */}
+                      <td style={{ padding: '6px 8px', borderRight: '1px solid #CBD5E1' }}>
+                        <input
+                          type="text"
+                          className="input-default"
+                          value={
+                            row.jamMulai && row.jamSelesai && !row.jamMulai.includes('-')
+                              ? `${row.jamMulai} - ${row.jamSelesai}`
+                              : row.jamMulai || row.jamSelesai || ''
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val.includes('-')) {
+                              const parts = val.split('-');
+                              handleUpdateTahapanRow(row.no, 'jamMulai', parts[0].trim());
+                              handleUpdateTahapanRow(row.no, 'jamSelesai', parts.slice(1).join('-').trim());
+                            } else {
+                              handleUpdateTahapanRow(row.no, 'jamMulai', val);
+                              handleUpdateTahapanRow(row.no, 'jamSelesai', '');
+                            }
+                          }}
+                          placeholder="09:00 - 12:00 WITA"
+                          style={{
+                            width: '100%',
+                            height: 34,
+                            fontSize: 12,
+                            padding: '4px 8px',
+                            fontFamily: 'var(--font-mono)',
+                            backgroundColor: (row.jamMulai || row.jamSelesai) ? '#FFFFFF' : '#FAFAFA',
+                          }}
+                        />
+                      </td>
+
+                      {/* TEMPAT */}
+                      <td style={{ padding: '6px 8px', borderRight: '1px solid #CBD5E1' }}>
+                        <input
+                          type="text"
+                          list="loc-master-list-tahapan"
+                          className="input-default"
+                          value={row.tempat}
+                          onChange={(e) => handleUpdateTahapanRow(row.no, 'tempat', e.target.value)}
+                          placeholder="Ruang Edit / Studio..."
+                          style={{
+                            width: '100%',
+                            height: 34,
+                            fontSize: 12,
+                            padding: '4px 8px',
+                            backgroundColor: row.tempat ? '#FFFFFF' : '#FAFAFA',
+                          }}
+                        />
+                        <datalist id="loc-master-list-tahapan">
+                          {MOCK_LOCATIONS.map((loc) => (
+                            <option key={loc.id} value={loc.name} />
+                          ))}
+                          <option value="Ruang Edit Pasca Produksi" />
+                          <option value="Studio 1 TVRI Bali" />
+                          <option value="Studio 2 TVRI Bali" />
+                          <option value="Studio 3 (Podcast & Mimbar Agama)" />
+                          <option value="Ruang VTR / Kontrol" />
+                          <option value="Master Control Room (MCR)" />
+                          <option value="Lokasi Luar / Lapangan" />
+                        </datalist>
+                      </td>
+
+                      {/* CREW */}
+                      <td style={{ padding: '6px 8px' }}>
+                        <input
+                          type="text"
+                          className="input-default"
+                          value={row.crew}
+                          onChange={(e) => handleUpdateTahapanRow(row.no, 'crew', e.target.value)}
+                          placeholder="Editing & mastering / Kru..."
+                          style={{
+                            width: '100%',
+                            height: 34,
+                            fontSize: 12,
+                            padding: '4px 8px',
+                            backgroundColor: row.crew ? '#FFFFFF' : '#FAFAFA',
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
+              <button
+                type="button"
+                className="button-secondary"
                 onClick={() => setCurrentStep('S2')}
                 style={{ height: 42, padding: '0 20px', gap: 6 }}
               >
-                <ArrowLeft size={16} /> Kembali ke Tahapan Kegiatan
+                <ArrowLeft size={16} /> Kembali ke Kebutuhan Kru & Alat
               </button>
 
               <button
@@ -1315,7 +1607,7 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
                 onClick={() => setCurrentStep('S4')}
                 style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
               >
-                <span>Lanjut ke tinjauan</span>
+                <span>Lanjut ke Tinjau & Kirim</span>
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -1451,6 +1743,63 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
                 </div>
               </div>
 
+              {/* Summary Table: Tahapan Kegiatan */}
+              <div style={{ marginBottom: 16 }}>
+                <strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>
+                  Jadwal Pelaksanaan & Tahapan Kegiatan:
+                </strong>
+                <div style={{ border: '1px solid var(--divider)', borderRadius: 6, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                        <th style={{ padding: '6px 8px', width: 40, textAlign: 'center' }}>No</th>
+                        <th style={{ padding: '6px 10px', width: 160 }}>Kegiatan</th>
+                        <th style={{ padding: '6px 10px', width: 140 }}>Hari / Tanggal</th>
+                        <th style={{ padding: '6px 10px', width: 130 }}>Pukul</th>
+                        <th style={{ padding: '6px 10px' }}>Tempat</th>
+                        <th style={{ padding: '6px 10px' }}>Crew</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Main Production Row */}
+                      <tr style={{ borderBottom: '1px solid var(--divider)', backgroundColor: '#FDF4FF' }}>
+                        <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, color: '#7C3AED' }}>&bull;</td>
+                        <td style={{ padding: '6px 10px', fontWeight: 700, color: '#6D28D9' }}>Pelaksanaan Produksi</td>
+                        <td style={{ padding: '6px 10px' }}>{tanggalProduksi || '-'}</td>
+                        <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)' }}>{jamMulaiProduksi} - {jamSelesaiProduksi}</td>
+                        <td style={{ padding: '6px 10px' }}>{lokasiProduksi || '-'}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--muted)' }}>{catatanProduksi || 'Produksi utama'}</td>
+                      </tr>
+                      {/* 6 Tahapan Rows */}
+                      {tahapanRows.map((row) => {
+                        const isFilled = row.tanggal || row.jamMulai || row.jamSelesai || row.tempat || row.crew;
+                        return (
+                          <tr
+                            key={row.no}
+                            style={{
+                              borderBottom: '1px solid var(--divider)',
+                              backgroundColor: isFilled ? '#FFFFFF' : '#F8FAFC',
+                              opacity: isFilled ? 1 : 0.6,
+                            }}
+                          >
+                            <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 600 }}>{row.no}</td>
+                            <td style={{ padding: '6px 10px', fontWeight: 600 }}>{row.label}</td>
+                            <td style={{ padding: '6px 10px' }}>{row.tanggal || '-'}</td>
+                            <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)' }}>
+                              {row.jamMulai && row.jamSelesai && !row.jamMulai.includes('-')
+                                ? `${row.jamMulai} - ${row.jamSelesai}`
+                                : row.jamMulai || row.jamSelesai || '-'}
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>{row.tempat || '-'}</td>
+                            <td style={{ padding: '6px 10px' }}>{row.crew || '-'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               {/* Official Notice */}
               <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', borderTop: '1px solid var(--divider)', paddingTop: 10 }}>
                 * Catatan: Nomor surat resmi diisi Administrasi Tata Usaha sebelum dicetak. Salinan untuk arsip dikirim ke Kepala Sub. Bagian Tata Usaha.
@@ -1473,7 +1822,7 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
                 onClick={() => setCurrentStep('S3')}
                 style={{ height: 42, padding: '0 20px', gap: 6 }}
               >
-                <ArrowLeft size={16} /> Kembali ke Kebutuhan
+                <ArrowLeft size={16} /> Kembali ke Tahapan Kegiatan
               </button>
 
               <div style={{ display: 'flex', gap: 10 }}>
@@ -1508,23 +1857,62 @@ export const SPRWizard: React.FC<SPRWizardProps> = ({
                 </button>
 
                 {/* Primary Action Button based on Role (SAD v1.1 lines 854-860) */}
-                <button
-                  type="button"
-                  className="button-primary"
-                  onClick={handleFinalSubmit}
-                  style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
-                >
-                  <Send size={16} />
-                  <span>
-                    {currentUserRole === 'admin_berita'
-                      ? 'Kirim ke Program'
-                      : isEditingRevision
-                      ? 'Kirim revisi ke Teknik'
-                      : existingSpr?.status === 'Menunggu Program'
-                      ? 'Teruskan ke Teknik'
-                      : 'Kirim ke Teknik'}
-                  </span>
-                </button>
+                {currentUserRole === 'admin_teknik' ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: '#F1F5F9',
+                      color: '#64748B',
+                      padding: '0 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      height: 42,
+                    }}
+                  >
+                    <Info size={15} />
+                    <span>Mode Lihat (Dikelola Program)</span>
+                  </div>
+                ) : existingSpr?.status === 'Diajukan' ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: '#FAF5FF',
+                      color: '#6D28D9',
+                      padding: '0 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      height: 42,
+                      border: '1px solid #DDD6FE',
+                    }}
+                  >
+                    <Info size={15} />
+                    <span>Menunggu Jawaban Divisi Teknik</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={handleFinalSubmit}
+                    style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8, backgroundColor: '#7C3AED' }}
+                  >
+                    <Send size={16} />
+                    <span>
+                      {currentUserRole === 'admin_berita'
+                        ? 'Kirim ke Program'
+                        : isEditingRevision
+                        ? 'Kirim revisi ke Teknik'
+                        : existingSpr?.status === 'Menunggu Program'
+                        ? 'Teruskan ke Teknik'
+                        : 'Kirim ke Teknik'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

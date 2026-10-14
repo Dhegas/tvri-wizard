@@ -335,6 +335,27 @@ export function JadwalDinasWizard({
         </div>
       </div>
 
+      {/* Banner Mode Lihat Saja untuk Divisi Program */}
+      {currentUserRole === 'admin_program' && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            borderBottom: '1px solid #BFDBFE',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13,
+            color: '#1E3FA8',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Mode Lihat Saja (Divisi Program):</strong> Jadwal Dinas Bulanan disusun dan dikelola sepenuhnya oleh Divisi Teknik sebagai acuan shift penyiaran 24 jam. Divisi Program dapat melihat jadwal shift seluruh kru siaran tanpa hak mengubah jadwal atau kode shift.
+          </div>
+        </div>
+      )}
+
       {/* 4-Step Stepper Header */}
       {currentStep <= 4 && (
         <div
@@ -1280,13 +1301,33 @@ export function JadwalDinasWizard({
                   >
                     Unduh PDF (Segera)
                   </button>
-                  <button
-                    type="button"
-                    className="button-primary"
-                    onClick={handlePublishSchedule}
-                  >
-                    Terbitkan Jadwal Dinas
-                  </button>
+                  {currentUserRole === 'admin_teknik' ? (
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={handlePublishSchedule}
+                    >
+                      Terbitkan Jadwal Dinas
+                    </button>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: '#F1F5F9',
+                        color: '#64748B',
+                        padding: '0 16px',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        height: 40,
+                      }}
+                    >
+                      <Info size={15} />
+                      <span>Mode Lihat (Dikelola Teknik)</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1651,33 +1692,52 @@ export function JadwalDinasWizard({
                 backgroundColor: 'var(--surface)',
               }}
             >
-              <button
-                type="button"
-                className="button-danger"
-                style={{ height: 40, padding: '0 14px' }}
-                onClick={handleClearCell}
-              >
-                Kosongkan Sel
-              </button>
+              {currentUserRole === 'admin_teknik' ? (
+                <>
+                  <button
+                    type="button"
+                    className="button-danger"
+                    style={{ height: 40, padding: '0 14px' }}
+                    onClick={handleClearCell}
+                  >
+                    Kosongkan Sel
+                  </button>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  type="button"
-                  className="button-secondary"
-                  style={{ height: 40, padding: '0 16px' }}
-                  onClick={() => setActiveCell(null)}
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  className="button-primary"
-                  style={{ height: 40, padding: '0 18px' }}
-                  onClick={modalTab === 'job' ? handleSaveCellCode : handleSaveAvailability}
-                >
-                  Simpan Perubahan
-                </button>
-              </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      style={{ height: 40, padding: '0 16px' }}
+                      onClick={() => setActiveCell(null)}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      style={{ height: 40, padding: '0 18px' }}
+                      onClick={modalTab === 'job' ? handleSaveCellCode : handleSaveAvailability}
+                    >
+                      Simpan Perubahan
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748B', fontSize: 13 }}>
+                    <Info size={16} />
+                    <span>Mode Lihat Saja (Dikelola Divisi Teknik)</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    style={{ height: 40, padding: '0 16px' }}
+                    onClick={() => setActiveCell(null)}
+                  >
+                    Tutup
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

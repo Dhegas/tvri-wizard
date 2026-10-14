@@ -1,17 +1,59 @@
 import React, { useRef } from 'react';
-import {
-  Printer,
-  X,
-  FileCheck,
-  QrCode,
-} from 'lucide-react';
+import { Printer, X, FileCheck, QrCode } from 'lucide-react';
 import type { SPRDocument, SPRAssignmentDocument } from '../types';
+import { MASTER_EMPLOYEES } from '../data/mockData';
 
 interface SuratPenunjukanPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   spr: SPRDocument;
   assignment: SPRAssignmentDocument;
+}
+
+function formatTvriDateOnly(dateStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatTvriFullDateTime(dateStr?: string, timeStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const dayName = !isNaN(d.getTime()) ? dayNames[d.getDay()] : '';
+    const dateFormatted = !isNaN(d.getTime()) ? `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}` : dateStr;
+    const timeFormatted = timeStr ? `pukul ${timeStr.slice(0, 5).replace(':', '.')} Wita` : '';
+    return `${dayName ? `${dayName}, ` : ''}${dateFormatted} ${timeFormatted}`.trim();
+  } catch {
+    return `${dateStr} ${timeStr || ''}`.trim();
+  }
+}
+
+function getEmployeeGolongan(empId?: string, empName?: string): string {
+  if (!empId && !empName) return '-';
+  const emp = MASTER_EMPLOYEES.find(
+    (e) => (empId && e.id === empId) || (empName && e.name.toLowerCase() === empName.toLowerCase())
+  );
+  if (!emp?.golongan) return '-';
+  const m = emp.golongan.match(/[I|V|X]+[\.\-][a-d]/i) || emp.golongan.match(/[I|V|X]+[a-d]/i);
+  if (m) {
+    return m[0].replace('.', '-');
+  }
+  return emp.golongan;
 }
 
 export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps> = ({
@@ -28,9 +70,55 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
     window.print();
   };
 
-  const spNomor = assignment.suratPenunjukanNomor || `SP/TVRI-BALI/TEK/10/2026/042`;
-  const qrCodeText = assignment.qrVerificationCode || `QR-TVRI-BALI-SP-202610-042`;
-  const mainProduction = spr.kegiatanList.find((k) => k.jenis === 'Produksi') || spr.kegiatanList[0];
+  // Cari kegiatan-kegiatan berdasarkan tahapan dari SPR
+  const mainProduction =
+    spr.kegiatanList.find((k) => k.jenis === 'On air') ||
+    spr.kegiatanList[0];
+
+  const huntingAct = spr.kegiatanList.find(
+    (k) => k.jenis === 'Hunting' || k.jenis === 'Survei'
+  );
+  const prodMeetingAct = spr.kegiatanList.find(
+    (k) => k.jenis === 'Production Meeting'
+  );
+  const settingAct = spr.kegiatanList.find(
+    (k) => k.jenis === 'Setting peralatan'
+  );
+  const pascaAct = spr.kegiatanList.find(
+    (k) => k.jenis === 'Pasca produksi'
+  );
+
+  // Deteksi jenis pelaksanaan untuk 4 kotak atas
+  const isHunting = spr.jenisKegiatan === 'Peninjauan' || Boolean(huntingAct);
+  const isLive = spr.jenisKegiatan === 'Siaran langsung';
+  const isRekaman = spr.jenisKegiatan === 'Rekaman';
+  const isProduksi = spr.jenisKegiatan === 'Produksi';
+
+  // Deteksi sistem peralatan untuk kotak poin 11
+  const sisAlat = (spr.sistemPeralatan?.sistem || '').toLowerCase();
+  const isStudio = sisAlat.includes('studio') || (!sisAlat.includes('eng') && !sisAlat.includes('efp') && !sisAlat.includes('ob'));
+  const isEng = sisAlat.includes('eng');
+  const isEfp = sisAlat.includes('efp');
+  const isObVan = sisAlat.includes('ob');
+
+  const jumlahKamera = spr.sistemPeralatan?.jumlahKamera || 3;
+
+  // Tanggal permintaan (SPR)
+  const tanggalPermintaan = formatTvriDateOnly(
+    spr.createdAt ? spr.createdAt.split(' ')[0] : mainProduction?.tanggal || '2026-10-09'
+  );
+
+  // Tanggal surat penunjukan terbit
+  const tanggalTerbit = formatTvriDateOnly(
+    assignment.publishedAt ? assignment.publishedAt.split(' ')[0] : mainProduction?.tanggal || '2026-10-09'
+  );
+
+  // Produser / Pemohon
+  const produserName = spr.produser || 'Cok Devi';
+
+  // Lokasi & Keterangan
+  const lokasiAcara = mainProduction?.lokasi || 'Studio 1';
+  const keteranganAcara = mainProduction?.catatanCrew || '';
 
   return (
     <div
@@ -49,7 +137,7 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
-          maxWidth: 900,
+          maxWidth: 920,
           width: '100%',
           maxHeight: '94vh',
           display: 'flex',
@@ -58,7 +146,7 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
           overflow: 'hidden',
         }}
       >
-        {/* Modal Top Bar */}
+        {/* Modal Top Bar (Web Only) */}
         <div
           className="no-print"
           style={{
@@ -74,10 +162,10 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
             <FileCheck size={20} />
             <div>
               <strong style={{ fontSize: '0.9375rem' }}>
-                Pratinjau Surat Penunjukan Kerabat Kerja Produksi (Divisi Teknik)
+                Pratinjau Surat Penunjukan Kerabat Kerja (Divisi Teknik)
               </strong>
               <div style={{ fontSize: 11, opacity: 0.85 }}>
-                LPP TVRI Stasiun Bali &bull; Format Surat Perintah Tugas Teknik Baku
+                Format Resmi Jawaban SPR &bull; LPP TVRI Stasiun Bali
               </div>
             </div>
           </div>
@@ -127,294 +215,580 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '28px',
-            backgroundColor: '#F1F5F9',
+            padding: '24px',
+            backgroundColor: '#E2E8F0',
             display: 'flex',
             justifyContent: 'center',
           }}
         >
+          {/* ========================================================= */}
+          {/* LEMBAR FISIK RESMI SURAT PENUNJUKAN KERABAT KERJA TVRI    */}
+          {/* ========================================================= */}
           <div
             ref={printSheetRef}
             className="tvri-official-sheet"
             style={{
               width: '100%',
-              maxWidth: 780,
+              maxWidth: 794, // Standard A4 width at 96 DPI
               backgroundColor: '#FFFFFF',
               boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-              padding: '36px 44px',
+              padding: '28px 36px',
               fontFamily: 'Arial, Helvetica, sans-serif',
               color: '#000000',
-              fontSize: 11,
-              lineHeight: 1.35,
+              fontSize: '11px',
+              lineHeight: 1.3,
             }}
           >
-            {/* Kop Surat Resmi TVRI Stasiun Bali */}
-            <div style={{ textAlign: 'center', borderBottom: '2.5px solid #000000', paddingBottom: 10, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                LEMBAGA PENYIARAN PUBLIK TELEVISI REPUBLIK INDONESIA
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, margin: '2px 0' }}>
-                STASIUN BALI
-              </div>
-              <div style={{ fontSize: 9.5, color: '#333333' }}>
-                Jl. Kapten Cokorda Agung Tresna, Renon, Denpasar - Bali 80235 | Telp. (0361) 228941, 235127
-              </div>
-            </div>
-
-            {/* Document Title & Number */}
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  textDecoration: 'underline',
-                  textTransform: 'uppercase',
-                  margin: '0 0 3px',
-                }}
-              >
-                SURAT PENUNJUKAN KERABAT KERJA DAN PERALATAN
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 700 }}>
-                NOMOR : {spNomor}
-              </div>
-            </div>
-
-            {/* Legal Basis Statement */}
-            <div style={{ marginBottom: 12, fontSize: 10.5, lineHeight: 1.4 }}>
-              <div>
-                Berdasarkan <strong>Surat Permintaan Kerabat Kerja dan Peralatan Operasional Produksi (SPR)</strong> Nomor :{' '}
-                <strong>{spr.nomorSurat || 'SPR/PROG/2026/10/028'}</strong>, dengan ini Sub Koordinator Pengendalian dan Pengembangan Teknik LPP TVRI Stasiun Bali menugaskan personil Kerabat Kerja Divisi Teknik untuk melaksanakan operasional produksi sebagai berikut :
-              </div>
-            </div>
-
-            {/* Production Metadata Grid */}
+            {/* 1. Header: Logo TVRI (kiri) & Judul Surat (kanan/tengah) */}
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1.2fr 1fr',
-                gap: 12,
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #CBD5E1',
-                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 marginBottom: 14,
-                fontSize: 10.5,
+                paddingBottom: 4,
               }}
             >
-              <div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: 100, verticalAlign: 'top', color: '#475569' }}>Mata Acara</td>
-                      <td style={{ width: 10, verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top', fontWeight: 700 }}>{spr.programName}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ verticalAlign: 'top', color: '#475569' }}>Judul Acara</td>
-                      <td style={{ verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top' }}>{spr.judul}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ verticalAlign: 'top', color: '#475569' }}>Jenis Kegiatan</td>
-                      <td style={{ verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top' }}>{spr.jenisKegiatan} ({spr.formatAcara})</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div style={{ flexShrink: 0 }}>
+                {/* Official TVRI Logo */}
+                <svg width="84" height="28" viewBox="0 0 95 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <text
+                    x="0"
+                    y="26"
+                    fontFamily="'Arial Black', 'Impact', sans-serif"
+                    fontWeight="900"
+                    fontSize="30"
+                    fill="#000000"
+                    letterSpacing="-1"
+                  >
+                    TV
+                  </text>
+                  <circle cx="73" cy="16" r="15" fill="#000000" />
+                  <text
+                    x="73"
+                    y="23"
+                    fontFamily="'Arial Black', sans-serif"
+                    fontWeight="900"
+                    fontSize="18"
+                    fill="#FFFFFF"
+                    textAnchor="middle"
+                    letterSpacing="-0.5"
+                  >
+                    RI
+                  </text>
+                </svg>
               </div>
 
-              <div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: 90, verticalAlign: 'top', color: '#475569' }}>Hari / Tgl</td>
-                      <td style={{ width: 10, verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top', fontWeight: 600 }}>{mainProduction?.tanggal || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ verticalAlign: 'top', color: '#475569' }}>Waktu / Jam</td>
-                      <td style={{ verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top' }}>
-                        {mainProduction ? `${mainProduction.jamMulai.slice(0, 5)} - ${mainProduction.jamSelesai.slice(0, 5)} WITA` : '-'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style={{ verticalAlign: 'top', color: '#475569' }}>Lokasi / Studio</td>
-                      <td style={{ verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top' }}>{mainProduction?.lokasi || 'Studio TVRI Bali'}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ verticalAlign: 'top', color: '#475569' }}>Sistem Alat</td>
-                      <td style={{ width: 10, verticalAlign: 'top' }}>:</td>
-                      <td style={{ verticalAlign: 'top', fontWeight: 600 }}>
-                        {spr.sistemPeralatan.sistem} {spr.sistemPeralatan.jumlahKamera ? `(${spr.sistemPeralatan.jumlahKamera} Kamera)` : ''}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div style={{ flex: 1, textAlign: 'center', paddingRight: 40 }}>
+                <h1
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: '#000000',
+                  }}
+                >
+                  SURAT PENUNJUKAN KERABAT KERJA
+                </h1>
               </div>
             </div>
 
-            {/* TABEL KERABAT KERJA RESMI DIVISI TEKNIK */}
-            <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 10.5, textTransform: 'uppercase' }}>
-              I. SUSUNAN KERABAT KERJA OPERASIONAL TEKNIK
+            {/* 2. Tujuan Surat (Kepada Yth) */}
+            <div style={{ fontSize: '10.5px', lineHeight: 1.25, marginBottom: 12 }}>
+              <div>Kepada Yth :</div>
+              <div style={{ fontWeight: 500 }}>Kepala Sub Bagian Tata Usaha TVRI Stasiun Bali</div>
+              <div>di-</div>
+              <div style={{ paddingLeft: 12 }}>Denpasar</div>
             </div>
+
+            {/* 3. Paragraf Pembuka & Checkbox Jenis Pelaksanaan */}
+            <div style={{ fontSize: '10.5px', lineHeight: 1.3, marginBottom: 8 }}>
+              <div style={{ marginBottom: 2 }}>Dengan hormat,</div>
+              <div>
+                Berdasarkan permintaan kerabat kerja dan peralatan operasional produksi tanggal{' '}
+                <strong style={{ fontWeight: 600 }}>{tanggalPermintaan}</strong>
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                bahwa petugas yang ditunjuk melaksanakan :
+              </div>
+
+              {/* 4 Checkboxes Sebaris */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 22,
+                  marginLeft: 10,
+                  fontSize: '10.5px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: '1px solid #000000',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {isHunting ? 'x' : ''}
+                  </span>
+                  <span>Peninjauan/hunting</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: '1px solid #000000',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {isProduksi ? 'x' : ''}
+                  </span>
+                  <span>Produksi</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: '1px solid #000000',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {isRekaman ? 'x' : ''}
+                  </span>
+                  <span>Rekaman</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: '1px solid #000000',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {isLive ? 'x' : ''}
+                  </span>
+                  <span>Siaran Langsung</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Tabel 13 Parameter Rincian Acara */}
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                border: '1.5px solid #000000',
-                marginBottom: 14,
-                fontSize: 10,
+                fontSize: '10.5px',
+                marginBottom: 8,
+              }}
+            >
+              <tbody>
+                <tr>
+                  <td style={{ width: 18, verticalAlign: 'top', padding: '1.5px 0' }}>1</td>
+                  <td style={{ width: 140, verticalAlign: 'top', padding: '1.5px 0' }}>Mata Acara</td>
+                  <td style={{ width: 14, verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{spr.programName}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>2</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Judul</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{spr.judul}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>3</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>D u r a s i</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{spr.durasi}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>4</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>L o k a s i</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{lokasiAcara}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>5</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Tgl. Pelaksanaan</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>
+                    {formatTvriFullDateTime(mainProduction?.tanggal, mainProduction?.jamMulai)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>6</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Hunting</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>
+                    {huntingAct ? formatTvriFullDateTime(huntingAct.tanggal, huntingAct.jamMulai) : ''}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>7</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Production Meeting</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>
+                    {prodMeetingAct ? formatTvriFullDateTime(prodMeetingAct.tanggal, prodMeetingAct.jamMulai) : ''}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>8</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Setting</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>
+                    {settingAct
+                      ? formatTvriFullDateTime(settingAct.tanggal, settingAct.jamMulai)
+                      : mainProduction
+                      ? formatTvriFullDateTime(mainProduction.tanggal, '08:00:00')
+                      : ''}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>9</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Pasca Produksi</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>
+                    {pascaAct ? formatTvriFullDateTime(pascaAct.tanggal, pascaAct.jamMulai) : ''}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>10</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Keterangan</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{keteranganAcara}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '3px 0' }}>11</td>
+                  <td style={{ verticalAlign: 'top', padding: '3px 0' }}>Sistem Peralatan</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '3px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '3px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, fontSize: '10.5px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span
+                            style={{
+                              width: 13,
+                              height: 13,
+                              border: '1px solid #000000',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {isStudio ? 'x' : ''}
+                          </span>
+                          <span>Studio</span>
+                        </div>
+                        <div style={{ fontSize: '9px', paddingLeft: 19, color: '#000000' }}>
+                          ({jumlahKamera} camera)
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span
+                          style={{
+                            width: 13,
+                            height: 13,
+                            border: '1px solid #000000',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {isEng ? 'x' : ''}
+                        </span>
+                        <span>ENG</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span
+                          style={{
+                            width: 13,
+                            height: 13,
+                            border: '1px solid #000000',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {isEfp ? 'x' : ''}
+                        </span>
+                        <span>EFP</span>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span
+                            style={{
+                              width: 13,
+                              height: 13,
+                              border: '1px solid #000000',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {isObVan ? 'x' : ''}
+                          </span>
+                          <span>OB-VAN</span>
+                        </div>
+                        <div style={{ fontSize: '9px', paddingLeft: 19, color: '#000000' }}>
+                          ({jumlahKamera} camera)
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>12</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Produser/PD/FD/UM</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{produserName}</td>
+                </tr>
+
+                <tr>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>13</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>Format</td>
+                  <td style={{ verticalAlign: 'top', textAlign: 'center', padding: '1.5px 0' }}>:</td>
+                  <td style={{ verticalAlign: 'top', padding: '1.5px 0' }}>{spr.formatAcara || 'Dialog'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* 5. Teks Pengantar Tabel Kerabat Kerja */}
+            <div style={{ fontSize: '10.5px', marginBottom: 4 }}>
+              Nama-nama Kerabat Kerja sebagai berikut :
+            </div>
+
+            {/* 6. TABEL KERABAT KERJA (NO, N A M A, P R O F E S I, GOLONGAN) */}
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                border: '1px solid #000000',
+                marginBottom: 10,
+                fontSize: '10px',
               }}
             >
               <thead>
-                <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #000000', textAlign: 'center' }}>
-                  <th style={{ width: 28, borderRight: '1px solid #000000', padding: 5 }}>NO</th>
-                  <th style={{ width: 150, borderRight: '1px solid #000000', padding: 5 }}>TUGAS / PROFESI</th>
-                  <th style={{ borderRight: '1px solid #000000', padding: 5 }}>NAMA PERSONIL</th>
-                  <th style={{ width: 160, borderRight: '1px solid #000000', padding: 5 }}>NIP</th>
-                  <th style={{ width: 95, padding: 5 }}>KETERANGAN</th>
+                <tr style={{ borderBottom: '1px solid #000000' }}>
+                  <th
+                    style={{
+                      width: 32,
+                      border: '1px solid #000000',
+                      textAlign: 'center',
+                      padding: '3px 4px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    No
+                  </th>
+                  <th
+                    style={{
+                      border: '1px solid #000000',
+                      textAlign: 'center',
+                      padding: '3px 6px',
+                      fontWeight: 700,
+                      letterSpacing: '2px',
+                    }}
+                  >
+                    N A M A
+                  </th>
+                  <th
+                    style={{
+                      width: 220,
+                      border: '1px solid #000000',
+                      textAlign: 'center',
+                      padding: '3px 6px',
+                      fontWeight: 700,
+                      letterSpacing: '2px',
+                    }}
+                  >
+                    P R O F E S I
+                  </th>
+                  <th
+                    style={{
+                      width: 110,
+                      border: '1px solid #000000',
+                      textAlign: 'center',
+                      padding: '3px 6px',
+                      fontWeight: 700,
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    GOLONGAN
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {assignment.assignedSlots.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: 12, fontStyle: 'italic', color: '#666' }}>
-                      Belum ada personil yang ditugaskan.
+                    <td
+                      colSpan={4}
+                      style={{
+                        textAlign: 'center',
+                        padding: 10,
+                        border: '1px solid #000000',
+                        fontStyle: 'italic',
+                        color: '#666666',
+                      }}
+                    >
+                      Belum ada kerabat kerja yang ditugaskan.
                     </td>
                   </tr>
                 ) : (
-                  assignment.assignedSlots.map((slot, idx) => (
-                    <tr
-                      key={slot.id}
-                      style={{
-                        borderBottom: idx === assignment.assignedSlots.length - 1 ? 'none' : '1px solid #CCCCCC',
-                      }}
-                    >
-                      <td style={{ textAlign: 'center', borderRight: '1px solid #000000', padding: '4px' }}>
-                        {idx + 1}
-                      </td>
-                      <td style={{ fontWeight: 600, borderRight: '1px solid #000000', padding: '4px 6px' }}>
-                        {slot.profesi} {slot.totalSlots > 1 ? `(${slot.slotNumber})` : ''}
-                      </td>
-                      <td style={{ borderRight: '1px solid #000000', padding: '4px 8px', fontWeight: slot.assignedCrewName ? 600 : 400 }}>
-                        {slot.assignedCrewName || <span style={{ color: '#DC2626', fontStyle: 'italic' }}>(Belum ditugaskan)</span>}
-                      </td>
-                      <td style={{ borderRight: '1px solid #000000', padding: '4px 6px', fontSize: 9.5, textAlign: 'center' }}>
-                        {slot.assignedCrewNip || '-'}
-                      </td>
-                      <td style={{ padding: '4px 6px', fontSize: 9.5, textAlign: 'center' }}>
-                        {slot.status === 'terisi' ? 'Bertugas' : '-'}
-                      </td>
-                    </tr>
-                  ))
+                  assignment.assignedSlots.map((slot, idx) => {
+                    const gol = getEmployeeGolongan(slot.assignedCrewId, slot.assignedCrewName);
+
+                    return (
+                      <tr key={slot.id || idx}>
+                        <td
+                          style={{
+                            textAlign: 'center',
+                            border: '1px solid #000000',
+                            padding: '2px 4px',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          {idx + 1}
+                        </td>
+                        <td
+                          style={{
+                            border: '1px solid #000000',
+                            padding: '2px 6px',
+                            verticalAlign: 'middle',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {slot.assignedCrewName || (
+                            <span style={{ color: '#666666', fontStyle: 'italic' }}>
+                              (Belum ditugaskan)
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            border: '1px solid #000000',
+                            padding: '2px 6px',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          {slot.profesi}
+                        </td>
+                        <td
+                          style={{
+                            border: '1px solid #000000',
+                            padding: '2px 6px',
+                            textAlign: 'center',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          {gol}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
 
-            {/* TABEL JADWAL TAHAPAN KEGIATAN */}
-            <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 10.5, textTransform: 'uppercase' }}>
-              II. JADWAL PELAKSANAAN KEGIATAN PRODUKSI
+            {/* 7. Kalimat Penutup */}
+            <div style={{ fontSize: '10.5px', marginBottom: 14 }}>
+              Demikian atas perhatiannya disampaikan terima kasih.
             </div>
-            <table
+
+            {/* 8. Tanda Tangan Sub Koordinator / Ketua Tim Teknik TVRI Bali */}
+            <div
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                border: '1.5px solid #000000',
-                marginBottom: 16,
-                fontSize: 9.5,
+                width: 280,
+                marginLeft: 'auto',
+                textAlign: 'center',
+                fontSize: '10.5px',
+                lineHeight: 1.25,
               }}
             >
-              <thead>
-                <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #000000', textAlign: 'center' }}>
-                  <th style={{ width: 28, borderRight: '1px solid #000000', padding: 4 }}>NO</th>
-                  <th style={{ width: 130, borderRight: '1px solid #000000', padding: 4 }}>TAHAPAN</th>
-                  <th style={{ width: 110, borderRight: '1px solid #000000', padding: 4 }}>HARI / TANGGAL</th>
-                  <th style={{ width: 90, borderRight: '1px solid #000000', padding: 4 }}>WAKTU</th>
-                  <th style={{ width: 130, borderRight: '1px solid #000000', padding: 4 }}>TEMPAT</th>
-                  <th style={{ padding: 4 }}>CATATAN</th>
-                </tr>
-              </thead>
-              <tbody>
-                {spr.kegiatanList.map((k, idx) => (
-                  <tr
-                    key={k.id}
-                    style={{
-                      borderBottom: idx === spr.kegiatanList.length - 1 ? 'none' : '1px solid #CCCCCC',
-                    }}
-                  >
-                    <td style={{ textAlign: 'center', borderRight: '1px solid #000000', padding: 3 }}>
-                      {idx + 1}
-                    </td>
-                    <td style={{ fontWeight: 600, borderRight: '1px solid #000000', padding: '3px 6px' }}>
-                      {k.jenis}
-                    </td>
-                    <td style={{ borderRight: '1px solid #000000', padding: '3px 6px', textAlign: 'center' }}>
-                      {k.tanggal}
-                    </td>
-                    <td style={{ borderRight: '1px solid #000000', padding: '3px 6px', textAlign: 'center' }}>
-                      {k.jamMulai.slice(0, 5)} - {k.jamSelesai.slice(0, 5)}
-                    </td>
-                    <td style={{ borderRight: '1px solid #000000', padding: '3px 6px' }}>
-                      {k.lokasi || '-'}
-                    </td>
-                    <td style={{ padding: '3px 6px' }}>{k.catatanCrew || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <div>Denpasar, {tanggalTerbit}</div>
+              <div style={{ marginTop: 2 }}>Ketua Tim Perencanaan, Pengendalian</div>
+              <div>dan Pengembangan Teknik</div>
 
-            {/* Ketentuan Tugas & Signature Footer */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, fontSize: 10, marginBottom: 14 }}>
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>Ketentuan :</div>
-                <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.4, color: '#333' }}>
-                  <li>Melaksanakan tugas operasional teknik dengan penuh tanggung jawab dan disiplin SOP penyiaran.</li>
-                  <li>Hadir di lokasi kegiatan minimal 30 menit sebelum jadwal produksi dimulai untuk persiapan teknis (*pre-flight check*).</li>
-                  <li>Melaporkan kesiapan peralatan dan kendala teknis kepada Pengarah Teknik / Sub Koordinator Teknik.</li>
-                </ol>
-              </div>
-
-              {/* Tanda Tangan Sub Koordinator Teknik & QR Code */}
-              <div style={{ textAlign: 'center' }}>
-                <div>Denpasar, {assignment.publishedAt ? assignment.publishedAt.split(' ')[0] : '12 Oktober 2026'}</div>
-                <div>An. Kepala Stasiun TVRI Bali</div>
-                <div style={{ marginBottom: 6 }}>Sub Koordinator Teknik,</div>
-
-                {/* QR Code Verification Box */}
+              {/* QR Code Resmi TVRI Bali */}
+              <div
+                style={{
+                  margin: '8px 0',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
                 <div
                   style={{
-                    display: 'inline-flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    border: '1px dashed #94A3B8',
-                    padding: '4px 10px',
+                    padding: 4,
+                    border: '1px solid #E2E8F0',
                     borderRadius: 4,
-                    marginBottom: 6,
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: '#FFFFFF',
+                    display: 'inline-flex',
                   }}
                 >
-                  <QrCode size={36} color="#1E3FA8" />
-                  <span style={{ fontSize: 7.5, color: '#64748B', fontFamily: 'monospace' }}>
-                    {qrCodeText}
-                  </span>
+                  <QrCode size={52} color="#000000" />
                 </div>
-
-                <div style={{ fontWeight: 700, textDecoration: 'underline' }}>
-                  I Made Dwi Cahyadi, S.T.
-                </div>
-                <div style={{ fontSize: 9.5 }}>NIP. 19820514 200801 1 012</div>
               </div>
-            </div>
 
-            {/* Official Tembusan Distribution */}
-            <div style={{ fontSize: 9, borderTop: '1px solid #999', paddingTop: 6 }}>
-              <div style={{ fontWeight: 700, textDecoration: 'underline', marginBottom: 2 }}>Tembusan :</div>
-              <div>1. Kepala LPP TVRI Stasiun Bali</div>
-              <div>2. Kepala Sub. Bagian Tata Usaha</div>
-              <div>3. Ketua Tim Perencanaan & Pengendalian Program</div>
-              <div>4. Yang bersangkutan untuk dilaksanakan</div>
-              <div>5. Arsip</div>
+              <div style={{ fontWeight: 700, textDecoration: 'none', color: '#000000' }}>
+                I Wayan Wigena Adi Kurniawan, ST
+              </div>
+              <div style={{ fontSize: '10px', color: '#000000' }}>NIP. 198310272011011006</div>
             </div>
           </div>
         </div>

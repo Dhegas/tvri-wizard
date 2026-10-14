@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Check,
   Calendar,
+  Info,
 } from 'lucide-react';
 import type {
   SPRDocument,
@@ -52,6 +53,8 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
   allSPRs,
   onSaveAssignment,
 }) => {
+  const isReadOnly = currentUserRole === 'admin_program';
+
   // Stepper state: P1 -> P2 -> P3 -> P4 -> SUCCESS
   const [currentStep, setCurrentStep] = useState<'P1' | 'P2' | 'P3' | 'P4' | 'SUCCESS'>(() => {
     return initialSprId ? 'P2' : 'P1';
@@ -220,10 +223,11 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
           selectedSpr.kegiatanList.forEach((act) => {
             const cell = dutySchedule.assignments[slot.assignedCrewId || '']?.[act.tanggal];
             if (cell?.availability) {
-              blockers.push({
-                id: `blk-${slot.id}-${act.tanggal}`,
+              warnings.push({
+                id: `warn-avail-${slot.id}-${act.tanggal}`,
                 slot,
-                message: `${slot.assignedCrewName} (${slot.profesi}) tercatat ${cell.availability} pada ${act.tanggal}. Pilih kru lain.`,
+                message: `${slot.assignedCrewName} (${slot.profesi}) tercatat ${cell.availability} pada ${act.tanggal} (tetap ditugaskan atas persetujuan Divisi Teknik).`,
+                reason: `Catatan jadwal: ${cell.availability}`,
               });
             }
           });
@@ -244,20 +248,13 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
       blockers,
       unfilled,
       warnings,
-      canProceedToP4: blockers.length === 0,
+      canProceedToP4: true,
     };
   }, [assignmentSlots, dutySchedule, selectedSpr]);
 
   // Handle slot assignment
   const handleAssignCrew = (candidateItem: CandidateEvaluationResult) => {
     if (!activeDrawerSlotId) return;
-
-    if (candidateItem.requiresException) {
-      setExceptionCandidate(candidateItem);
-      setExceptionReasonInput('');
-      setExceptionReasonError('');
-      return;
-    }
 
     setSaveStatus('Menyimpan...');
 
@@ -271,6 +268,10 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
             assignedCrewName: candidateItem.candidate.name,
             assignedCrewNip: candidateItem.candidate.nip,
             assignedCrewDivision: candidateItem.candidate.subDivision || candidateItem.candidate.division,
+            secondaryRole:
+              candidateItem.status === 'tersedia_peringatan'
+                ? candidateItem.reason
+                : undefined,
           };
         }
         return slot;
@@ -510,6 +511,27 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Banner Mode Lihat Saja untuk Divisi Program */}
+      {currentUserRole === 'admin_program' && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            borderBottom: '1px solid #BFDBFE',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13,
+            color: '#1E3FA8',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Mode Lihat Saja (Divisi Program):</strong> Penugasan kerabat kerja SPR dilakukan dan ditetapkan oleh Divisi Teknik. Divisi Program dapat melihat status dan daftar kru yang ditunjuk serta mencetak lembar surat perintah tanpa hak mengubah penugasan.
+          </div>
+        </div>
+      )}
 
       {/* ===================================================================
           4-STEP STEPPER (P1 -> P2 -> P3 -> P4)
@@ -786,7 +808,7 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                             }}
                             style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px', gap: 6 }}
                           >
-                            <span>Tugaskan Kru</span>
+                            <span>{isReadOnly ? 'Lihat Penugasan Kru' : 'Tugaskan Kru'}</span>
                             <ArrowRight size={14} />
                           </button>
 
@@ -942,47 +964,61 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                                 borderColor: isFilled ? '#A7F3D0' : 'var(--divider)',
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                {/* Left: Slot Label & Assigned Name */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: isFilled ? 'var(--on-success-container)' : 'var(--muted)', minWidth: 150 }}>
-                                    {slot.profesi}, slot {slot.slotNumber} dari {slot.totalSlots}
-                                  </span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                                {/* Left: Slot Number & Assigned Name */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                                  <div
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: '50%',
+                                      backgroundColor: isFilled ? '#D1FAE5' : '#E2E8F0',
+                                      color: isFilled ? '#065F46' : '#64748B',
+                                      fontWeight: 700,
+                                      fontSize: 13,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                    }}
+                                    title={`Posisi ke-${slot.slotNumber} dari ${slot.totalSlots}`}
+                                  >
+                                    {slot.slotNumber}
+                                  </div>
 
                                   {isFilled ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                         <div
                                           style={{
-                                            width: 22,
-                                            height: 22,
+                                            width: 20,
+                                            height: 20,
                                             borderRadius: '50%',
                                             backgroundColor: 'var(--success)',
                                             color: '#FFFFFF',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
+                                            flexShrink: 0,
                                           }}
                                         >
-                                          <Check size={13} strokeWidth={3} />
+                                          <Check size={12} strokeWidth={3} />
                                         </div>
-                                        <div>
-                                          <strong style={{ fontSize: 13, color: 'var(--on-success-container)' }}>
-                                            {slot.assignedCrewName}
-                                          </strong>
-                                          <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>
-                                            {slot.assignedCrewNip || slot.assignedCrewDivision}
+                                        <strong style={{ fontSize: 13, color: 'var(--on-success-container)' }}>
+                                          {slot.assignedCrewName}
+                                        </strong>
+                                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                          {slot.assignedCrewNip || slot.assignedCrewDivision}
+                                        </span>
+                                        {slot.secondaryRole && (
+                                          <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', backgroundColor: '#FEF3C7', padding: '1px 6px', borderRadius: 4 }}>
+                                            {slot.secondaryRole}
                                           </span>
-                                          {slot.secondaryRole && (
-                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', marginLeft: 8, backgroundColor: '#FEF3C7', padding: '1px 6px', borderRadius: 4 }}>
-                                              {slot.secondaryRole}
-                                            </span>
-                                          )}
-                                        </div>
+                                        )}
                                       </div>
 
                                       {/* Tautan Hanya kegiatan tertentu (SAD v1.1 line 885) */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginLeft: 30, fontSize: 11 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginLeft: 28, fontSize: 11 }}>
                                         <span style={{ color: 'var(--muted)' }}>
                                           {slot.hanyaKegiatanTertentu && slot.hanyaKegiatanTertentu.length > 0
                                             ? `Berlaku untuk ${slot.hanyaKegiatanTertentu.length} dari ${selectedSpr.kegiatanList.length} kegiatan`
@@ -1015,8 +1051,21 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
 
                                 {/* Right: Action Buttons */}
                                 {!isNonTechnical && (
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    {isFilled ? (
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    {isReadOnly ? (
+                                      <span
+                                        style={{
+                                          fontSize: 11,
+                                          fontWeight: 600,
+                                          padding: '4px 10px',
+                                          borderRadius: 4,
+                                          backgroundColor: isFilled ? 'var(--success-container)' : '#F1F5F9',
+                                          color: isFilled ? 'var(--on-success-container)' : 'var(--muted)',
+                                        }}
+                                      >
+                                        {isFilled ? 'Ditugaskan (Teknik)' : 'Belum Ditugaskan'}
+                                      </span>
+                                    ) : isFilled ? (
                                       <>
                                         <button
                                           type="button"
@@ -1081,7 +1130,7 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                                             alignItems: 'center',
                                             gap: 8,
                                             fontSize: 11.5,
-                                            cursor: 'pointer',
+                                            cursor: isReadOnly ? 'default' : 'pointer',
                                             padding: '4px 6px',
                                             backgroundColor: isChecked ? '#EFF6FF' : '#F8FAFC',
                                             borderRadius: 4,
@@ -1090,7 +1139,9 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                                           <input
                                             type="checkbox"
                                             checked={isChecked}
+                                            disabled={isReadOnly}
                                             onChange={(e) => {
+                                              if (isReadOnly) return;
                                               const currentList = slot.hanyaKegiatanTertentu || selectedSpr.kegiatanList.map((a) => a.id);
                                               const nextList = e.target.checked
                                                 ? [...currentList, act.id]
@@ -1548,35 +1599,55 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                 </button>
 
                 {/* Primary Action Button (SAD v1.1 lines 950-956) */}
-                {filledSlotsCount === totalSlotsCount ? (
-                  <button
-                    type="button"
-                    className="button-primary"
-                    onClick={() => handleFinalPublish(false)}
-                    style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8 }}
-                  >
-                    <Send size={16} />
-                    <span>Terbitkan Surat Penunjukan</span>
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="button-secondary"
-                      onClick={() => setPartialPublishConfirmOpen(true)}
-                      style={{ height: 42, padding: '0 16px', fontSize: 13 }}
-                    >
-                      Terbitkan surat dengan penugasan sebagian
-                    </button>
+                {currentUserRole !== 'admin_program' ? (
+                  filledSlotsCount === totalSlotsCount ? (
                     <button
                       type="button"
                       className="button-primary"
-                      onClick={() => handleFinalPublish(true)}
-                      style={{ height: 42, padding: '0 20px', fontSize: 13.5 }}
+                      onClick={() => handleFinalPublish(false)}
+                      style={{ height: 42, padding: '0 24px', fontSize: 14, gap: 8 }}
                     >
-                      Simpan penugasan sebagian
+                      <Send size={16} />
+                      <span>Terbitkan Surat Penunjukan</span>
                     </button>
-                  </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="button-secondary"
+                        onClick={() => setPartialPublishConfirmOpen(true)}
+                        style={{ height: 42, padding: '0 16px', fontSize: 13 }}
+                      >
+                        Terbitkan surat dengan penugasan sebagian
+                      </button>
+                      <button
+                        type="button"
+                        className="button-primary"
+                        onClick={() => handleFinalPublish(true)}
+                        style={{ height: 42, padding: '0 20px', fontSize: 13.5 }}
+                      >
+                        Simpan penugasan sebagian
+                      </button>
+                    </>
+                  )
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: '#F1F5F9',
+                      color: '#64748B',
+                      padding: '0 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      height: 42,
+                    }}
+                  >
+                    <Info size={15} />
+                    <span>Mode Lihat (Dikelola Divisi Teknik)</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -1728,15 +1799,10 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                 </div>
               ) : (
                 filteredCandidates.map((cItem) => {
-                  const isKetuaTim = currentUserRole === 'admin_teknik' || currentUserRole === 'super_admin';
-                  const isSelectable = cItem.canBeAssigned || (cItem.requiresException && isKetuaTim);
-
                   return (
                     <div
                       key={cItem.candidate.id}
-                      onClick={() => {
-                        if (isSelectable) handleAssignCrew(cItem);
-                      }}
+                      onClick={() => handleAssignCrew(cItem)}
                       style={{
                         padding: '12px 14px',
                         borderRadius: 'var(--radius-md)',
@@ -1744,22 +1810,13 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                         borderColor:
                           cItem.status === 'tersedia'
                             ? 'var(--divider)'
-                            : cItem.status === 'tersedia_peringatan'
-                            ? '#FCD34D'
-                            : cItem.status === 'perlu_pengecualian'
-                            ? '#FDBA74'
-                            : '#FCA5A5',
+                            : '#FCD34D',
                         backgroundColor:
                           cItem.status === 'tersedia'
                             ? '#FFFFFF'
-                            : cItem.status === 'tersedia_peringatan'
-                            ? 'var(--warning-container)'
-                            : cItem.status === 'perlu_pengecualian'
-                            ? '#FFF7ED'
-                            : '#FEF2F2',
-                        cursor: isSelectable ? 'pointer' : 'not-allowed',
-                        opacity: cItem.status === 'tidak_tersedia' ? 0.75 : 1,
-                        transition: 'background-color 0.15s ease',
+                            : '#FFFBEB',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -1773,19 +1830,11 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                             backgroundColor:
                               cItem.status === 'tersedia'
                                 ? 'var(--success-container)'
-                                : cItem.status === 'tersedia_peringatan'
-                                ? '#FEF3C7'
-                                : cItem.status === 'perlu_pengecualian'
-                                ? '#FFEDD5'
-                                : 'var(--error-container)',
+                                : '#FEF3C7',
                             color:
                               cItem.status === 'tersedia'
                                 ? 'var(--on-success-container)'
-                                : cItem.status === 'tersedia_peringatan'
-                                ? 'var(--on-warning-container)'
-                                : cItem.status === 'perlu_pengecualian'
-                                ? '#C2410C'
-                                : 'var(--error)',
+                                : '#B45309',
                           }}
                         >
                           {cItem.statusLabel}
@@ -1803,7 +1852,7 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                           style={{
                             marginTop: 6,
                             fontSize: 11,
-                            color: cItem.status === 'tersedia' ? 'var(--success)' : cItem.status === 'tidak_tersedia' ? 'var(--error)' : 'var(--ink)',
+                            color: cItem.status === 'tersedia' ? 'var(--success)' : '#B45309',
                             lineHeight: 1.3,
                           }}
                         >
@@ -1811,20 +1860,11 @@ export const SPRAssignmentWizard: React.FC<SPRAssignmentWizardProps> = ({
                         </div>
                       )}
 
-                      {/* Ketua Tim Action vs Admin Lain Info (SAD v1.1 line 894-895) */}
-                      {cItem.status === 'perlu_pengecualian' && (
-                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed #FED7AA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          {isKetuaTim ? (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#C2410C' }}>
-                              Beri pengecualian &rarr;
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 11, color: '#9A3412', fontStyle: 'italic' }}>
-                              Hanya Ketua Tim yang dapat memberi pengecualian.
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div style={{ marginTop: 6, paddingTop: 4, borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#1E3FA8' }}>
+                          Pilih Personil Ini &rarr;
+                        </span>
+                      </div>
                     </div>
                   );
                 })

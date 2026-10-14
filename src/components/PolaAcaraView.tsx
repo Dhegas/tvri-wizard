@@ -11,14 +11,16 @@ import {
 import {
   OFFICIAL_POLA_GRID_OCTOBER_2026,
 } from '../data/mockData';
-import type { BroadcastDay, PolaKategoriType } from '../types';
+import type { BroadcastDay, PolaKategoriType, UserRole } from '../types';
 
 interface PolaAcaraViewProps {
+  currentUserRole?: UserRole;
   onGoToRundownWithDay?: (day: BroadcastDay, block: 'Pagi' | 'Sore') => void;
   onGoToSprWithProgram?: (programName: string, format: string, duration: string) => void;
 }
 
 export const PolaAcaraView: React.FC<PolaAcaraViewProps> = ({
+  currentUserRole = 'admin_program',
   onGoToRundownWithDay,
   onGoToSprWithProgram,
 }) => {
@@ -80,6 +82,29 @@ export const PolaAcaraView: React.FC<PolaAcaraViewProps> = ({
 
   return (
     <div className="pola-acara-container" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Banner Mode Lihat Saja untuk Divisi Teknik */}
+      {currentUserRole === 'admin_teknik' && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            border: '1.5px solid #93C5FD',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            fontSize: 13,
+            color: '#1E3FA8',
+            boxShadow: '0 1px 2px rgba(30, 63, 168, 0.05)',
+          }}
+        >
+          <Info size={18} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Mode Lihat Saja (Divisi Teknik):</strong> Pola Acara Stasiun ditetapkan oleh Divisi Program sebagai acuan stasiun. Divisi Teknik menggunakannya untuk melihat fasilitas siaran dan pemancar tanpa hak mengubah jadwal atau membuat rundown.
+          </div>
+        </div>
+      )}
+
       {/* 1. Official Header Banner: Document Metadata */}
       <div
         style={{
@@ -166,7 +191,7 @@ export const PolaAcaraView: React.FC<PolaAcaraViewProps> = ({
               <Printer size={15} /> Cetak Pola Acara
             </button>
 
-            {onGoToRundownWithDay && (
+            {currentUserRole === 'admin_program' && onGoToRundownWithDay && (
               <button
                 type="button"
                 className="button-primary"
@@ -679,7 +704,7 @@ export const PolaAcaraView: React.FC<PolaAcaraViewProps> = ({
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                            {isProduksiLocal && onGoToSprWithProgram && (
+                            {currentUserRole === 'admin_program' && isProduksiLocal && onGoToSprWithProgram ? (
                               <button
                                 type="button"
                                 className="button-secondary"
@@ -689,6 +714,8 @@ export const PolaAcaraView: React.FC<PolaAcaraViewProps> = ({
                               >
                                 <Film size={12} /> Ajukan SPR (W3)
                               </button>
+                            ) : (
+                              <span style={{ fontSize: 11, color: 'var(--muted)' }}>Acuan Siaran</span>
                             )}
                           </div>
                         </td>
