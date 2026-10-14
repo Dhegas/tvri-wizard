@@ -16,12 +16,13 @@ interface CandidatePickerProps {
   availableSecondaryRoles?: string[];
   requestedNames?: string[];
   onSelectAllRequested?: () => void;
+  programType?: 'penyiaran' | 'produksi';
 }
 
 export const CandidatePicker: React.FC<CandidatePickerProps> = ({
   candidates,
   selectedIds,
-  maxNeeded,
+  maxNeeded: _maxNeeded = 0,
   onToggleCandidate,
   targetRole = 'Semua',
   dualRoleMap = {},
@@ -30,6 +31,7 @@ export const CandidatePicker: React.FC<CandidatePickerProps> = ({
   availableSecondaryRoles,
   requestedNames = [],
   onSelectAllRequested,
+  programType = 'penyiaran',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(targetRole);
@@ -71,7 +73,9 @@ export const CandidatePicker: React.FC<CandidatePickerProps> = ({
     return Object.keys(dualRoleMap).filter((id) => selectedIds.includes(id)).length;
   }, [dualRoleMap, selectedIds]);
 
-  const totalFilledSlots = selectedIds.length + dualRoleCount;
+  const _totalFilledSlots = selectedIds.length + dualRoleCount;
+  void _totalFilledSlots;
+  void _maxNeeded;
 
   // Sort: available first, then matched rundown names, then name
   const filteredCandidates = useMemo(() => {
@@ -135,8 +139,11 @@ export const CandidatePicker: React.FC<CandidatePickerProps> = ({
         <div className="selection-counter-badge">
           <UserCheck size={16} />
           <span className="tabular">
-            {totalFilledSlots} dari {maxNeeded} posisi terisi
-            {dualRoleCount > 0 && ` (${selectedIds.length} personil, ${dualRoleCount} rangkap)`}
+            {programType === 'produksi' ? (
+              `${selectedIds.length} dari ${_maxNeeded} posisi terisi`
+            ) : (
+              `${selectedIds.length} personil terpilih${dualRoleCount > 0 ? ` (${dualRoleCount} rangkap tugas)` : ''}`
+            )}
           </span>
         </div>
       </div>

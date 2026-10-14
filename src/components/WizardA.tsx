@@ -19,7 +19,7 @@ import { Stepper } from './Stepper';
 import type { StepItem } from './Stepper';
 import { AlertBanner } from './AlertBanner';
 import { StatusBadge } from './StatusBadge';
-import type { BroadcastBlock, ProgramDemand, CrewRequest, RoleNeedItem } from '../types';
+import type { BroadcastBlock, ProgramDemand, CrewRequest, RoleNeedItem, KerabatKerjaItem } from '../types';
 import { parseCommaNames } from '../utils/crewParser';
 import { INITIAL_RUNDOWN } from '../data/mockData';
 
@@ -53,7 +53,18 @@ const AVAILABLE_ROLES = [
 ];
 
 // Sample authentic TVRI Bali data from Rundown Siaran Pagi (21 September 2026)
-const TVRI_BALI_SAMPLE = {
+const TVRI_BALI_SAMPLE: {
+  documentTitle: string;
+  date: string;
+  dateDisplay: string;
+  block: BroadcastBlock;
+  programs: ProgramDemand[];
+  kerabatKerja: KerabatKerjaItem[];
+  totalTechnicalCrew: number;
+  supervisor: string;
+  supervisorTitle: string;
+  supervisorNip: string;
+} = {
   documentTitle: 'RUNDOWN PENYELENGARAAN SIARAN PAGI TVRI BALI',
   date: '2026-09-21',
   dateDisplay: 'Senin, 21 September 2026',
@@ -106,22 +117,22 @@ const TVRI_BALI_SAMPLE = {
     },
   ],
   kerabatKerja: [
-    { peran: 'PD. Umum', personil: 'Dewa Rahwi', kuota: 1, namaList: ['Dewa Rahwi'] },
-    { peran: 'Master Control / CCU', personil: 'Ary Juliantara, Wayan Sugata', kuota: 2, namaList: ['Ary Juliantara', 'Wayan Sugata'] },
-    { peran: 'Pengarah Teknik', personil: 'Anom Randhika', kuota: 1, namaList: ['Anom Randhika'] },
-    { peran: 'Kamerawan', personil: 'Andrew, Reza, Astawa', kuota: 3, namaList: ['Andrew', 'Reza', 'Astawa'] },
-    { peran: 'VTR. OP', personil: 'Gede Purnayasa', kuota: 1, namaList: ['Gede Purnayasa'] },
-    { peran: 'Pemadu Gambar', personil: 'Putu Widiastuti, Putri Krisna', kuota: 2, namaList: ['Putu Widiastuti', 'Putri Krisna'] },
-    { peran: 'Penata Cahaya', personil: 'Supriyanto', kuota: 1, namaList: ['Supriyanto'] },
-    { peran: 'Penata Suara', personil: 'Mega, Erik Julianto', kuota: 2, namaList: ['Mega', 'Erik Julianto'] },
-    { peran: 'Penata Rias', personil: 'Pande Muliasih, Dwi Indah Ayu', kuota: 2, namaList: ['Pande Muliasih', 'Dwi Indah Ayu'] },
-    { peran: 'Transmisi', personil: 'IGA Cintya, Suciana, IGAB Arya, IGN Putra', kuota: 3, namaList: ['IGA Cintya Suciana', 'IGAB Arya', 'IGN Putra'] },
-    { peran: 'Penata Aksara', personil: 'Annisa Pratiwi', kuota: 1, namaList: ['Annisa Pratiwi'] },
-    { peran: 'PD. BHI / GB / BV', personil: 'Pemberitaan', kuota: 1, namaList: ['Pemberitaan'] },
-    { peran: 'Penata Acara', personil: 'Panji Surya', kuota: 1, namaList: ['Panji Surya'] },
-    { peran: 'Penyiar BHI / GB / BV', personil: 'Pemberitaan', kuota: 1, namaList: ['Pemberitaan'] },
-    { peran: 'Teknisi IT / LED', personil: 'Bagas Suryatama', kuota: 1, namaList: ['Bagas Suryatama'] },
-    { peran: 'Penata Artistik', personil: 'Luthfi Quasimah Widoyo', kuota: 1, namaList: ['Luthfi Quasimah Widoyo'] },
+    { peran: 'PD. Umum', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Master Control / CCU', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 2 },
+    { peran: 'Pengarah Teknik', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Kamerawan', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 3 },
+    { peran: 'VTR. OP', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Pemadu Gambar', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 2 },
+    { peran: 'Penata Cahaya', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Penata Suara', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 2 },
+    { peran: 'Penata Rias', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 2 },
+    { peran: 'Transmisi', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 3 },
+    { peran: 'Penata Aksara', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'PD. BHI / GB / BV', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Penata Acara', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Penyiar BHI / GB / BV', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Teknisi IT / LED', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
+    { peran: 'Penata Artistik', personil: '(Menunggu Penugasan Divisi Teknik)', kuota: 1 },
   ],
   totalTechnicalCrew: 24,
   supervisor: 'Eryawan Srimartono',
@@ -132,19 +143,40 @@ const TVRI_BALI_SAMPLE = {
 interface WizardAProps {
   onSuccessSubmit: (newRequest: CrewRequest) => void;
   onGoToRundown?: () => void;
+  existingRequests?: CrewRequest[];
+  programType?: 'penyiaran' | 'produksi';
+  onProgramTypeChange?: (type: 'penyiaran' | 'produksi') => void;
 }
 
-export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown }) => {
+export const WizardA: React.FC<WizardAProps> = ({
+  onSuccessSubmit,
+  onGoToRundown,
+  existingRequests = [],
+  programType: propProgramType = 'penyiaran',
+  onProgramTypeChange,
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [lastSavedTime, setLastSavedTime] = useState<string>('Baru saja');
   const [draftSavedAlert, setDraftSavedAlert] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [viewingFinalRundownReq, setViewingFinalRundownReq] = useState<CrewRequest | null>(null);
 
   // Uploaded Rundown State
   const [uploadedRundownDoc, setUploadedRundownDoc] = useState<typeof TVRI_BALI_SAMPLE | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
-  // Step 1 State
+  // Step 1 State - Program Type sync with parent tabs
+  const [programType, setProgramTypeState] = useState<'penyiaran' | 'produksi'>(propProgramType);
+
+  useEffect(() => {
+    setProgramTypeState(propProgramType);
+  }, [propProgramType]);
+
+  const setProgramType = (newType: 'penyiaran' | 'produksi') => {
+    setProgramTypeState(newType);
+    if (onProgramTypeChange) onProgramTypeChange(newType);
+  };
+
   const [broadcastDate, setBroadcastDate] = useState<string>('2026-10-06');
   const [selectedBlock, setSelectedBlock] = useState<BroadcastBlock>('Pagi');
   const [dateError, setDateError] = useState<string>('');
@@ -229,22 +261,22 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
   // Direct Submit from Uploaded Kerabat Kerja Siaran
   const handleDirectSubmitUploaded = () => {
     const rolesConsolidated: RoleNeedItem[] = [
-      { role: 'PD. Umum', count: 1, requestedNames: ['Dewa Rahwi'] },
-      { role: 'Master Control / CCU', count: 2, requestedNames: ['Ary Juliantara', 'Wayan Sugata'] },
-      { role: 'Pengarah Teknik', count: 1, requestedNames: ['Anom Randhika'] },
-      { role: 'Kamerawan', count: 3, requestedNames: ['Andrew', 'Reza', 'Astawa'] },
-      { role: 'VTR. OP', count: 1, requestedNames: ['Gede Purnayasa'] },
-      { role: 'Pemadu Gambar', count: 2, requestedNames: ['Putu Widiastuti', 'Putri Krisna'] },
-      { role: 'Penata Cahaya', count: 1, requestedNames: ['Supriyanto'] },
-      { role: 'Penata Suara', count: 2, requestedNames: ['Mega', 'Erik Julianto'] },
-      { role: 'Penata Rias', count: 2, requestedNames: ['Pande Muliasih', 'Dwi Indah Ayu'] },
-      { role: 'Transmisi', count: 3, requestedNames: ['IGA Cintya Suciana', 'IGAB Arya', 'IGN Putra'] },
-      { role: 'Penata Aksara', count: 1, requestedNames: ['Annisa Pratiwi'] },
-      { role: 'PD. BHI / GB / BV', count: 1, requestedNames: ['Pemberitaan'] },
-      { role: 'Penata Acara', count: 1, requestedNames: ['Panji Surya'] },
-      { role: 'Penyiar BHI / GB / BV', count: 1, requestedNames: ['Pemberitaan'] },
-      { role: 'Teknisi IT / LED', count: 1, requestedNames: ['Bagas Suryatama'] },
-      { role: 'Penata Artistik', count: 1, requestedNames: ['Luthfi Quasimah Widoyo'] },
+      { role: 'PD. Umum', count: 1 },
+      { role: 'Master Control / CCU', count: 2 },
+      { role: 'Pengarah Teknik', count: 1 },
+      { role: 'Kamerawan', count: 3 },
+      { role: 'VTR. OP', count: 1 },
+      { role: 'Pemadu Gambar', count: 2 },
+      { role: 'Penata Cahaya', count: 1 },
+      { role: 'Penata Suara', count: 2 },
+      { role: 'Penata Rias', count: 2 },
+      { role: 'Transmisi', count: 3 },
+      { role: 'Penata Aksara', count: 1 },
+      { role: 'PD. BHI / GB / BV', count: 1 },
+      { role: 'Penata Acara', count: 1 },
+      { role: 'Penyiar BHI / GB / BV', count: 1 },
+      { role: 'Teknisi IT / LED', count: 1 },
+      { role: 'Penata Artistik', count: 1 },
     ];
 
     const newReq: CrewRequest = {
@@ -258,9 +290,10 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
       status: 'Diajukan',
       requesterName: 'Eryawan Srimartono (Ketua Tim Perencanaan Program)',
       createdAt: 'Baru saja',
-      notes: 'Diekstrak langsung dari berkas Rundown Penyelenggaraan Siaran Pagi & Tabel KERABAT KERJA SIARAN TVRI Bali (Senin, 21 September 2026).',
+      notes: 'Pengajuan daftar kebutuhan profesi siaran (16 profesi). Penugasan personil kru diisi oleh Divisi Teknik.',
       sourceDocument: uploadedRundownDoc?.documentTitle || 'Rundown Penyelenggaraan Siaran Pagi TVRI Bali',
       kerabatKerja: uploadedRundownDoc?.kerabatKerja,
+      programType: 'penyiaran',
     };
 
     setIsSubmitted(true);
@@ -388,9 +421,12 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
       status: 'Diajukan',
       requesterName: uploadedRundownDoc ? 'Eryawan Srimartono (Admin Program)' : 'Bambang Triyono (Admin Program)',
       createdAt: 'Baru saja',
-      notes: programs.map((p) => p.notes).filter(Boolean).join('; '),
+      notes: programType === 'produksi'
+        ? programs.map((p) => p.notes).filter(Boolean).join('; ')
+        : (programs.map((p) => p.notes).filter(Boolean).join('; ') || 'Pengajuan daftar kebutuhan profesi siaran. Penugasan personil kru diisi oleh Divisi Teknik.'),
       sourceDocument: uploadedRundownDoc?.documentTitle,
       kerabatKerja: constructedKerabatKerja && constructedKerabatKerja.length > 0 ? constructedKerabatKerja : undefined,
+      programType: programType,
     };
 
     setIsSubmitted(true);
@@ -603,11 +639,16 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
             {/* 2. Visual Authentic "KERABAT KERJA SIARAN" Table Preview */}
             <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 6, border: '1px solid #CBD5E1' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderBottom: '1px solid #E2E8F0', paddingBottom: 6 }}>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#0F1F54', letterSpacing: '0.3px' }}>
-                  TABEL KERABAT KERJA SIARAN (Kebutuhan Kru Terverifikasi)
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#0F1F54', letterSpacing: '0.3px' }}>
+                    TABEL KERABAT KERJA SIARAN (Daftar Profesi Program Penyiaran)
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
+                    Format Program Penyiaran TVRI Bali: Mengajukan daftar profesi yang dibutuhkan. Kolom personil akan diplot oleh Divisi Teknik.
+                  </div>
                 </div>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0F1F54', backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', padding: '3px 10px', borderRadius: 4 }}>
-                  Total 24 Personil Kerabat Kerja
+                  16 Profesi Penyiaran
                 </span>
               </div>
 
@@ -616,16 +657,24 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
                 {/* Left Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {uploadedRundownDoc.kerabatKerja.slice(0, 8).map((k, i) => {
-                    const parsed = parseCommaNames(k.personil);
+                    const isUnassigned = !k.namaList || k.namaList.length === 0 || k.personil.includes('Menunggu');
                     return (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', backgroundColor: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF', borderRadius: 4, gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: '#334155', minWidth: 120 }}>{k.peran}:</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', backgroundColor: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF', borderRadius: 4, gap: 8 }}>
+                        <div>
+                          <span style={{ fontWeight: 600, color: '#334155' }}>{k.peran}</span>
+                        </div>
                         <div className="crew-name-pills-wrap" style={{ justifyContent: 'flex-end', flex: 1 }}>
-                          {parsed.map((pName, pIdx) => (
-                            <span key={pIdx} className="crew-name-pill highlight" title="Personil yang diminta di rundown">
-                              {pName}
+                          {isUnassigned ? (
+                            <span className="crew-name-pill" style={{ backgroundColor: '#F1F5F9', color: '#64748B', border: '1px dashed #CBD5E1' }}>
+                              Menunggu Divisi Teknik
                             </span>
-                          ))}
+                          ) : (
+                            k.namaList?.map((pName, pIdx) => (
+                              <span key={pIdx} className="crew-name-pill highlight" title="Personil yang ditugaskan">
+                                {pName}
+                              </span>
+                            ))
+                          )}
                         </div>
                       </div>
                     );
@@ -635,16 +684,24 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
                 {/* Right Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {uploadedRundownDoc.kerabatKerja.slice(8).map((k, i) => {
-                    const parsed = parseCommaNames(k.personil);
+                    const isUnassigned = !k.namaList || k.namaList.length === 0 || k.personil.includes('Menunggu');
                     return (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', backgroundColor: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF', borderRadius: 4, gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: '#334155', minWidth: 120 }}>{k.peran}:</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', backgroundColor: i % 2 === 0 ? '#F8FAFC' : '#FFFFFF', borderRadius: 4, gap: 8 }}>
+                        <div>
+                          <span style={{ fontWeight: 600, color: '#334155' }}>{k.peran}</span>
+                        </div>
                         <div className="crew-name-pills-wrap" style={{ justifyContent: 'flex-end', flex: 1 }}>
-                          {parsed.map((pName, pIdx) => (
-                            <span key={pIdx} className="crew-name-pill highlight" title="Personil yang diminta di rundown">
-                              {pName}
+                          {isUnassigned ? (
+                            <span className="crew-name-pill" style={{ backgroundColor: '#F1F5F9', color: '#64748B', border: '1px dashed #CBD5E1' }}>
+                              Menunggu Divisi Teknik
                             </span>
-                          ))}
+                          ) : (
+                            k.namaList?.map((pName, pIdx) => (
+                              <span key={pIdx} className="crew-name-pill highlight" title="Personil yang ditugaskan">
+                                {pName}
+                              </span>
+                            ))
+                          )}
                         </div>
                       </div>
                     );
@@ -661,6 +718,90 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
           </div>
         )}
       </div>
+
+      {/* Existing Requests & Returned Rundowns from Divisi Teknik */}
+      {existingRequests && existingRequests.length > 0 && (() => {
+        const filteredReqs = existingRequests.filter((r) =>
+          programType === 'produksi' ? r.programType === 'produksi' : r.programType !== 'produksi'
+        );
+        if (filteredReqs.length === 0) return null;
+
+        return (
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #CBD5E1',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px 20px',
+              marginBottom: '24px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Radio size={16} color="#1F4E8C" />
+                <strong style={{ fontSize: 14, color: '#0F1F54' }}>
+                  {programType === 'produksi'
+                    ? 'Status Permintaan Kru Produksi In-House (Divisi Program)'
+                    : 'Status Permintaan Rundown Siaran Harian (Divisi Program)'}
+                </strong>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                {programType === 'produksi'
+                  ? 'Siklus: Rencana Produksi &rarr; Plotting Kuota Kru &rarr; Surat Perintah Produksi'
+                  : 'Siklus: Program (Hanya Profesi) &rarr; Teknik (Isi Kru) &rarr; Kembali ke Program (Final)'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {filteredReqs.slice(0, 4).map((req) => {
+              const isReturned = req.status === 'Dikirim ke Program';
+              return (
+                <div
+                  key={req.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderRadius: 6,
+                    backgroundColor: isReturned ? '#F0FDF4' : '#F8FAFC',
+                    border: `1px solid ${isReturned ? '#86EFAC' : '#E2E8F0'}`,
+                    flexWrap: 'wrap',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <strong style={{ fontSize: 13, color: '#0F172A' }}>{req.programName}</strong>
+                      <span style={{ fontSize: 11, color: '#64748B' }}>&bull; {req.timeRange}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: isReturned ? '#166534' : '#64748B' }}>
+                      {isReturned
+                        ? `✓ Telah Dilengkapi oleh Divisi Teknik: Kru terisi resmi & Surat Perintah terbit (${req.returnedToProgramAt || 'Baru saja'})`
+                        : 'Sedang Diproses oleh Divisi Teknik: Menunggu plotting nama-nama personil kru'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <StatusBadge status={req.status} />
+                    {isReturned && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ height: 32, fontSize: 12, padding: '0 12px' }}
+                        onClick={() => setViewingFinalRundownReq(req)}
+                      >
+                        Lihat Rundown Final (Kru Terisi)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ); })()}
 
       {/* Stepper */}
       <Stepper
@@ -696,6 +837,65 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
             <div className="two-col-layout">
               {/* Form Input Area */}
               <div>
+                <div className="form-group">
+                  <label className="form-label">
+                    Kategori Alur Program <span className="required-star">*</span>
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setProgramType('penyiaran')}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        border: programType === 'penyiaran' ? '2px solid #1F4E8C' : '1px solid #CBD5E1',
+                        backgroundColor: programType === 'penyiaran' ? '#EFF6FF' : '#FFFFFF',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 13, color: programType === 'penyiaran' ? '#1E40AF' : '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Program Penyiaran</span>
+                        {programType === 'penyiaran' && (
+                          <span style={{ fontSize: 10, backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
+                        Siaran harian TVRI Bali. Hanya mengajukan daftar <strong>profesi kerabat kerja</strong> (kuota angka disembunyikan).
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setProgramType('produksi')}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        border: programType === 'produksi' ? '2px solid #1F4E8C' : '1px solid #CBD5E1',
+                        backgroundColor: programType === 'produksi' ? '#EFF6FF' : '#FFFFFF',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 13, color: programType === 'produksi' ? '#1E40AF' : '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Program Produksi</span>
+                        {programType === 'produksi' && (
+                          <span style={{ fontSize: 10, backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
+                        In-house taping & syuting. Mengaktifkan <strong>stepper kuota jumlah kru</strong> per profesi.
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="broadcast-date" className="form-label">
                     Tanggal Siaran <span className="required-star">*</span>
@@ -896,9 +1096,15 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
         {currentStep === 3 && (
           <div>
             <div className="step-card-header">
-              <h2 className="step-card-title">Langkah 3 &mdash; Kebutuhan Peran Kru</h2>
+              <h2 className="step-card-title">
+                {programType === 'produksi'
+                  ? 'Langkah 3 — Kebutuhan Peran Kru (Program Produksi)'
+                  : 'Langkah 3 — Daftar Profesi Kerabat Kerja (Program Penyiaran)'}
+              </h2>
               <p className="step-card-desc">
-                Tentukan jumlah personil yang dibutuhkan untuk setiap peran penyiaran.
+                {programType === 'produksi'
+                  ? 'Tentukan kuota jumlah personil yang dibutuhkan untuk setiap peran produksi.'
+                  : 'Pilih profesi kerabat kerja siaran yang dibutuhkan. Pada alur penyiaran, penugasan kru diisi oleh Divisi Teknik tanpa penentuan kuota angka.'}
               </p>
             </div>
 
@@ -927,31 +1133,61 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
                           <span style={{ fontWeight: 600, fontSize: 13, display: 'block', color: 'var(--text-primary)' }}>
                             {role}
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                            {count > 0 ? `${count} personil` : 'Tidak dibutuhkan'}
-                          </span>
+                          {programType === 'produksi' ? (
+                            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                              {count > 0 ? `${count} personil` : 'Tidak dibutuhkan'}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: count > 0 ? '#15803D' : 'var(--text-secondary)', fontWeight: count > 0 ? 600 : 400 }}>
+                              {count > 0 ? '✓ Profesi Dipilih' : 'Tidak dibutuhkan'}
+                            </span>
+                          )}
                         </div>
 
-                        <div className="quantity-stepper">
-                          <button
-                            type="button"
-                            className="stepper-btn"
-                            disabled={count <= 0}
-                            onClick={() => updateRoleCount(prog.id, role, -1)}
-                            aria-label={`Kurangi personil ${role}`}
-                          >
-                            -
-                          </button>
-                          <span className="stepper-value tabular">{count}</span>
-                          <button
-                            type="button"
-                            className="stepper-btn"
-                            onClick={() => updateRoleCount(prog.id, role, 1)}
-                            aria-label={`Tambah personil ${role}`}
-                          >
-                            +
-                          </button>
-                        </div>
+                        {programType === 'produksi' ? (
+                          <div className="quantity-stepper">
+                            <button
+                              type="button"
+                              className="stepper-btn"
+                              disabled={count <= 0}
+                              onClick={() => updateRoleCount(prog.id, role, -1)}
+                              aria-label={`Kurangi personil ${role}`}
+                            >
+                              -
+                            </button>
+                            <span className="stepper-value tabular">{count}</span>
+                            <button
+                              type="button"
+                              className="stepper-btn"
+                              onClick={() => updateRoleCount(prog.id, role, 1)}
+                              aria-label={`Tambah personil ${role}`}
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            {count > 0 ? (
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ height: 32, fontSize: 12, padding: '0 10px' }}
+                                onClick={() => updateRoleCount(prog.id, role, -count)}
+                              >
+                                Batal
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-outline-gray"
+                                style={{ height: 32, fontSize: 12, padding: '0 10px' }}
+                                onClick={() => updateRoleCount(prog.id, role, 1)}
+                              >
+                                + Pilih
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1026,7 +1262,9 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
               {/* Section 3 */}
               <div className="summary-section">
                 <div className="summary-section-header">
-                  <span className="summary-section-title">3. Total Kebutuhan Kru</span>
+                  <span className="summary-section-title">
+                    {programType === 'produksi' ? '3. Total Kebutuhan Kru' : '3. Daftar Profesi Kru Yang Diajukan'}
+                  </span>
                   <button
                     type="button"
                     className="summary-link-edit"
@@ -1051,15 +1289,17 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
                         {p.programName}:
                       </strong>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {p.roles.map((r) => (
-                          <span
-                            key={r.role}
-                            className="status-badge"
-                            style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
-                          >
-                            {r.role} &times; {r.count}
-                          </span>
-                        ))}
+                        {p.roles
+                          .filter((r) => r.count > 0)
+                          .map((r) => (
+                            <span
+                              key={r.role}
+                              className="status-badge"
+                              style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
+                            >
+                              {programType === 'produksi' ? `${r.role} × ${r.count}` : r.role}
+                            </span>
+                          ))}
                       </div>
                     </div>
                   ))}
@@ -1132,6 +1372,86 @@ export const WizardA: React.FC<WizardAProps> = ({ onSuccessSubmit, onGoToRundown
           </div>
         </div>
       </div>
+
+      {/* Modal Pratinjau Rundown Final yang Dikembalikan oleh Teknik */}
+      {viewingFinalRundownReq && (
+        <div className="modal-backdrop" onClick={() => setViewingFinalRundownReq(null)}>
+          <div
+            className="modal-container"
+            style={{ maxWidth: 840, padding: 24 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1.5px solid #E2E8F0', paddingBottom: 10 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#15803D', backgroundColor: '#DCFCE7', padding: '2px 8px', borderRadius: 9999 }}>
+                  ✓ Dokumen Resmi Dikembalikan oleh Divisi Teknik
+                </span>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F1F54', marginTop: 4 }}>
+                  RUNDOWN PENYELENGGARAAN SIARAN PAGI TVRI BALI (FINAL & LENGKAP)
+                </h3>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
+                  {viewingFinalRundownReq.date} &bull; {viewingFinalRundownReq.timeRange} &bull; Program: {viewingFinalRundownReq.programName}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-gray"
+                style={{ height: 32, fontSize: 12 }}
+                onClick={() => setViewingFinalRundownReq(null)}
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: 14, borderRadius: 6, border: '1px solid #CBD5E1', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#0F1F54' }}>
+                  TABEL KERABAT KERJA SIARAN (Nama Personel Kru Resmi Telah Diisi Lengkap)
+                </div>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#15803D', backgroundColor: '#DCFCE7', padding: '2px 8px', borderRadius: 4 }}>
+                  24 Kru Terisi Lengkap
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {viewingFinalRundownReq.kerabatKerja?.slice(0, 8).map((k, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#FFFFFF', borderRadius: 4, border: '1px solid #E2E8F0' }}>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{k.peran}:</span>
+                      <span style={{ fontWeight: 700, color: '#1E40AF' }}>{k.personil}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {viewingFinalRundownReq.kerabatKerja?.slice(8).map((k, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#FFFFFF', borderRadius: 4, border: '1px solid #E2E8F0' }}>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{k.peran}:</span>
+                      <span style={{ fontWeight: 700, color: '#1E40AF' }}>{k.personil}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-outline-gray"
+                onClick={() => setViewingFinalRundownReq(null)}
+              >
+                Tutup Pratinjau
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => window.print()}
+              >
+                Cetak Rundown Siap Siar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

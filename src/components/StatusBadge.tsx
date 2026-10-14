@@ -51,6 +51,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
           <span>Selesai</span>
         </span>
       );
+    case 'Dikirim ke Program':
+      return (
+        <span className={`status-badge selesai ${className}`} style={{ backgroundColor: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' }} role="status">
+          <CheckCircle2 size={12} strokeWidth={2.5} />
+          <span>Kru Lengkap (Dikirim ke Program)</span>
+        </span>
+      );
     case 'Draf':
       return (
         <span className={`status-badge draf ${className}`} role="status">

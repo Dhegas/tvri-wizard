@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   CheckCircle,
   Printer,
   ArrowLeft,
   ArrowRight,
   Filter,
+  Send,
 } from 'lucide-react';
 import { Stepper } from './Stepper';
 import type { StepItem } from './Stepper';
@@ -35,10 +36,26 @@ const WIZARD_B_STEPS: StepItem[] = [
 interface WizardBProps {
   requests: CrewRequest[];
   onAssignmentComplete: (assignment: SavedAssignment) => void;
+  onSendBackToProgram?: (requestId: string, assignment: SavedAssignment) => void;
+  programType?: 'penyiaran' | 'produksi';
+  onProgramTypeChange?: (type: 'penyiaran' | 'produksi') => void;
 }
 
-export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete }) => {
+export const WizardB: React.FC<WizardBProps> = ({
+  requests,
+  onAssignmentComplete,
+  onSendBackToProgram,
+  programType: propProgramType = 'penyiaran',
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isSentBack, setIsSentBack] = useState<boolean>(false);
+
+  // Program Type sync with parent tabs
+  const [programType, setProgramTypeState] = useState<'penyiaran' | 'produksi'>(propProgramType);
+
+  useEffect(() => {
+    setProgramTypeState(propProgramType);
+  }, [propProgramType]);
 
   // Filter requests in Step 1
   const [filterBlock, setFilterBlock] = useState<string>('Semua');
@@ -114,11 +131,25 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
 
   const totalPositionsCovered = selectedCrewIds.length + dualRoleCount;
 
-  // Filtered requests list
+  // Filtered requests list by block & programType
   const filteredRequests = requests.filter((r) => {
+    if (programType === 'produksi') {
+      if (r.programType !== 'produksi') return false;
+    } else {
+      if (r.programType === 'produksi') return false;
+    }
     if (filterBlock !== 'Semua' && r.block !== filterBlock) return false;
     return true;
   });
+
+  // Auto-switch selected request when programType changes or current request is filtered out
+  useEffect(() => {
+    const isCurrentValid = filteredRequests.some((r) => r.id === selectedRequestId);
+    if (!isCurrentValid && filteredRequests.length > 0) {
+      const firstPending = filteredRequests.find((r) => r.status === 'Diajukan');
+      setSelectedRequestId(firstPending ? firstPending.id : filteredRequests[0].id);
+    }
+  }, [programType, filteredRequests, selectedRequestId]);
 
   // Candidate selection toggle
   const handleToggleCandidate = (candidateId: string) => {
@@ -311,6 +342,25 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
               </div>
             </div>
 
+            {/* Real TVRI Bali Lifecycle Information Banner */}
+            <div
+              style={{
+                marginBottom: 16,
+                padding: '12px 16px',
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <Send size={18} color="#1E40AF" />
+              <div style={{ fontSize: 13, color: '#1E3A8A' }}>
+                <strong>Siklus Kerja TVRI Bali:</strong> Divisi Program mengajukan permintaan yang <em>hanya berisi profesi & kuota kru</em> (kolom nama kru kosong). Di Divisi Teknik inilah Anda memilih personil teknis yang bertugas, menerbitkan Surat Perintah, lalu <strong>mengirimkan kembali dokumen rundown lengkap ke Divisi Program</strong>.
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {filteredRequests.map((req) => (
                 <div
@@ -372,10 +422,21 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      Kebutuhan:{' '}
-                      <strong className="tabular">
-                        {req.rolesNeeded.reduce((a, b) => a + b.count, 0)} orang
-                      </strong>
+                      {req.programType === 'produksi' ? (
+                        <>
+                          Kebutuhan:{' '}
+                          <strong className="tabular">
+                            {req.rolesNeeded.reduce((a, b) => a + b.count, 0)} orang
+                          </strong>
+                        </>
+                      ) : (
+                        <>
+                          Daftar:{' '}
+                          <strong className="tabular">
+                            {req.rolesNeeded.length} profesi siaran
+                          </strong>
+                        </>
+                      )}
                     </span>
                     <StatusBadge status={req.status} />
                   </div>
@@ -391,7 +452,7 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
             <div className="step-card-header">
               <h2 className="step-card-title">Langkah 2 &mdash; Pilih Kandidat Kru</h2>
               <p className="step-card-desc">
-                Pilih personil untuk program <strong>{activeRequest.programName}</strong> (Kebutuhan: {totalCrewNeeded} posisi).
+                Pilih personil untuk program <strong>{activeRequest.programName}</strong> ({activeRequest.programType === 'produksi' ? `Kebutuhan: ${totalCrewNeeded} posisi` : `${activeRequest.rolesNeeded.length} profesi siaran`}).
               </p>
             </div>
 
@@ -411,7 +472,11 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
                     Kebutuhan Peran ({activeRequest.sourceDocument ? 'Tabel KERABAT KERJA SIARAN' : 'Daftar Pengajuan'}):
                   </strong>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    Total: <strong className="tabular">{totalCrewNeeded} posisi</strong>
+                    {activeRequest.programType === 'produksi' ? (
+                      <>Total: <strong className="tabular">{totalCrewNeeded} posisi</strong></>
+                    ) : (
+                      <>Daftar: <strong className="tabular">{activeRequest.rolesNeeded.length} profesi</strong></>
+                    )}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -431,7 +496,7 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
                         }}
                       >
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>
-                          {r.role} &times; {r.count}
+                          {activeRequest.programType === 'produksi' ? `${r.role} × ${r.count}` : r.role}
                         </span>
                         {reqNames.length > 0 && (
                           <div className="crew-name-pills-wrap">
@@ -481,6 +546,7 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
               availableSecondaryRoles={activeRequest?.rolesNeeded?.map((r) => r.role)}
               requestedNames={requestedNamesList}
               onSelectAllRequested={handleSelectAllRequestedFromRundown}
+              programType={activeRequest?.programType || 'penyiaran'}
             />
           </div>
         )}
@@ -933,24 +999,81 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
             </div>
 
             {/* Action Buttons as specified in Section 8.2 Step 5 */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 20 }}>
               <button
                 type="button"
                 className="btn btn-outline-gray"
                 onClick={() => {
                   setCurrentStep(1);
+                  setIsSentBack(false);
                 }}
               >
                 Kembali ke Daftar Permintaan
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-secondary"
                 onClick={() => setShowSpModal(true)}
               >
-                <Printer size={16} /> Buat Surat Perintah
+                <Printer size={16} /> Buat Surat Perintah (PDF)
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isSentBack}
+                onClick={() => {
+                  if (savedAssignment) {
+                    setIsSentBack(true);
+                    if (onSendBackToProgram) {
+                      onSendBackToProgram(savedAssignment.requestId, savedAssignment);
+                    }
+                  }
+                }}
+                style={{
+                  backgroundColor: isSentBack ? '#15803D' : '#1F4E8C',
+                  borderColor: isSentBack ? '#15803D' : '#1F4E8C',
+                }}
+              >
+                {isSentBack ? (
+                  <>
+                    <CheckCircle size={16} /> Rundown Telah Dikirim ke Program
+                  </>
+                ) : (
+                  <>
+                    <Send size={16} /> Kirim Kembali Rundown ke Divisi Program
+                  </>
+                )}
               </button>
             </div>
+
+            {isSentBack && (
+              <div
+                style={{
+                  marginTop: 20,
+                  maxWidth: 580,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  padding: '14px 18px',
+                  backgroundColor: '#DCFCE7',
+                  border: '1px solid #86EFAC',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#166534',
+                  fontSize: 13,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  textAlign: 'left',
+                }}
+              >
+                <CheckCircle size={22} color="#16A34A" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Berhasil Dikirim ke Divisi Program!</strong>
+                  <div style={{ fontSize: 12, marginTop: 2, color: '#15803D' }}>
+                    Dokumen rundown lengkap beserta data 24 personel resmi dan Surat Perintah telah dikembalikan ke Divisi Program. Status di Program kini telah diperbarui menjadi <em>'Kru Lengkap & Siap Siar'</em>.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -971,7 +1094,16 @@ export const WizardB: React.FC<WizardBProps> = ({ requests, onAssignmentComplete
 
             <div className="footer-center">
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Kebutuhan: <strong>{totalCrewNeeded} posisi</strong> ({totalPositionsCovered} posisi terisi: {selectedCrewIds.length} personil{dualRoleCount > 0 ? `, ${dualRoleCount} rangkap tugas` : ''})
+                {activeRequest.programType === 'produksi' ? (
+                  <>
+                    Kebutuhan: <strong>{totalCrewNeeded} posisi</strong> ({totalPositionsCovered} posisi terisi: {selectedCrewIds.length} personil{dualRoleCount > 0 ? `, ${dualRoleCount} rangkap tugas` : ''})
+                  </>
+                ) : (
+                  <>
+                    Penugasan Penyiaran: <strong>{selectedCrewIds.length} personil terpilih</strong>
+                    {dualRoleCount > 0 ? ` (${dualRoleCount} rangkap tugas)` : ''} &bull; Meliputi {activeRequest.rolesNeeded.length} profesi siaran
+                  </>
+                )}
               </span>
             </div>
 
