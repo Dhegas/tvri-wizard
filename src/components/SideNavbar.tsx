@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Tv,
   Radio,
   Film,
   Calendar,
@@ -11,6 +10,7 @@ import {
   Clock,
   ChevronRight,
   Layers,
+  CheckSquare,
 } from 'lucide-react';
 
 export type ActiveView =
@@ -18,6 +18,7 @@ export type ActiveView =
   | 'pola_acara'
   | 'wizard_1_jadwal'
   | 'wizard_2_rundown'
+  | 'jawaban_rundown'
   | 'wizard_3_spr'
   | 'wizard_4_assignment'
   | 'legacy_flow';
@@ -32,6 +33,7 @@ interface SideNavbarProps {
   pendingAssignmentCount: number;
   sprTotalCount: number;
   returnedRundownCount: number;
+  pendingRundownReviewCount?: number;
   userProfile: {
     name: string;
     phone: string;
@@ -47,6 +49,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
   pendingAssignmentCount,
   sprTotalCount,
   returnedRundownCount,
+  pendingRundownReviewCount = 2,
   userProfile,
   onOpenFirstLogin,
 }) => {
@@ -102,19 +105,28 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
       >
         <div
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: 10,
-            backgroundColor: '#1E3FA8',
-            color: '#FFFFFF',
+            backgroundColor: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(30, 63, 168, 0.4)',
+            padding: '5px 7px',
+            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
             flexShrink: 0,
           }}
         >
-          <Tv size={22} strokeWidth={2.5} />
+          <img
+            src="/tvri-logo.png"
+            alt="TVRI Logo"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
         </div>
         <div style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -354,6 +366,37 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                   {activeView === 'wizard_2_rundown' && <ChevronRight size={14} color="#93C5FD" />}
                 </button>
 
+                {/* Status Jawaban Teknik Rundown (Untuk Program) */}
+                <button
+                  type="button"
+                  onClick={() => onSelectView('jawaban_rundown')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    backgroundColor: activeView === 'jawaban_rundown' ? '#1E3FA8' : 'transparent',
+                    color: activeView === 'jawaban_rundown' ? '#FFFFFF' : '#CBD5E1',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                >
+                  <CheckSquare size={16} color={activeView === 'jawaban_rundown' ? '#93C5FD' : '#94A3B8'} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: activeView === 'jawaban_rundown' ? 700 : 500 }}>
+                      Jawaban Teknik Rundown
+                    </div>
+                    <div style={{ fontSize: 10.5, color: activeView === 'jawaban_rundown' ? '#DBEAFE' : '#64748B' }}>
+                      Status verifikasi & kesiapan
+                    </div>
+                  </div>
+                  {activeView === 'jawaban_rundown' && <ChevronRight size={14} color="#93C5FD" />}
+                </button>
+
                 {/* View Jadwal Dinas (Wizard 1 read-only / coordination) */}
                 <button
                   type="button"
@@ -514,7 +557,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
         {/* Navigation Group for DIVISI TEKNIK */}
         {activeDivision === 'teknik' && (
           <>
-            {/* Group 1: Operasional Penyiaran */}
+            {/* Group 1: Perencanaan & Jadwal Dinas (Dipisahkan dari Operasional Penyiaran) */}
             <div>
               <div
                 style={{
@@ -526,7 +569,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                   padding: '0 8px 6px',
                 }}
               >
-                Operasional Penyiaran
+                Perencanaan & Jadwal Dinas
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -591,8 +634,26 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                   </div>
                   {activeView === 'wizard_1_jadwal' && <ChevronRight size={14} color="#93C5FD" />}
                 </button>
+              </div>
+            </div>
 
-                {/* Wizard 2: Monitoring Rundown */}
+            {/* Group 2: Operasional Penyiaran */}
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  padding: '0 8px 6px',
+                }}
+              >
+                Operasional Penyiaran
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {/* Rundown Siaran (W2): Hub Highlight Hari Ini, Riwayat & Tugas Kru */}
                 <button
                   type="button"
                   onClick={() => onSelectView('wizard_2_rundown')}
@@ -604,23 +665,70 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                     padding: '10px 12px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: activeView === 'wizard_2_rundown' ? '#1E3FA8' : 'transparent',
+                    backgroundColor: activeView === 'wizard_2_rundown' ? '#059669' : 'transparent',
                     color: activeView === 'wizard_2_rundown' ? '#FFFFFF' : '#CBD5E1',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <Radio size={16} color={activeView === 'wizard_2_rundown' ? '#93C5FD' : '#94A3B8'} />
+                  <Radio size={16} color={activeView === 'wizard_2_rundown' ? '#A7F3D0' : '#34D399'} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: activeView === 'wizard_2_rundown' ? 700 : 500 }}>
                       Rundown Siaran (W2)
                     </div>
-                    <div style={{ fontSize: 10.5, color: activeView === 'wizard_2_rundown' ? '#DBEAFE' : '#64748B' }}>
-                      Review teknis kerabat siaran
+                    <div style={{ fontSize: 10.5, color: activeView === 'wizard_2_rundown' ? '#D1FAE5' : '#64748B' }}>
+                      Highlight hari ini, history & kru
                     </div>
                   </div>
-                  {activeView === 'wizard_2_rundown' && <ChevronRight size={14} color="#93C5FD" />}
+                  {activeView === 'wizard_2_rundown' && <ChevronRight size={14} color="#A7F3D0" />}
+                </button>
+
+                {/* Sub Menu: Jawaban Rundown Siaran */}
+                <button
+                  type="button"
+                  onClick={() => onSelectView('jawaban_rundown')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    backgroundColor: activeView === 'jawaban_rundown' ? '#059669' : 'transparent',
+                    color: activeView === 'jawaban_rundown' ? '#FFFFFF' : '#CBD5E1',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                >
+                  <CheckSquare size={16} color={activeView === 'jawaban_rundown' ? '#A7F3D0' : '#34D399'} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 13, fontWeight: activeView === 'jawaban_rundown' ? 700 : 500 }}>
+                        Jawaban Rundown
+                      </span>
+                      {pendingRundownReviewCount > 0 && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            backgroundColor: '#F59E0B',
+                            color: '#FFFFFF',
+                            borderRadius: 10,
+                            padding: '1px 6px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {pendingRundownReviewCount}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: activeView === 'jawaban_rundown' ? '#D1FAE5' : '#64748B' }}>
+                      Respon & verifikasi teknik siaran
+                    </div>
+                  </div>
+                  {activeView === 'jawaban_rundown' && <ChevronRight size={14} color="#A7F3D0" />}
                 </button>
               </div>
             </div>

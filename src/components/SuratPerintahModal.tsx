@@ -469,15 +469,16 @@ export const SuratPerintahModal: React.FC<SuratPerintahModalProps> = ({ assignme
             <div className="tvri-doc-header">
               <div className="tvri-logo-wrapper">
                 {/* Official TVRI Mark */}
-                <svg width="95" height="32" viewBox="0 0 95 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <text x="0" y="26" fontFamily="'Arial Black', 'Impact', sans-serif" fontWeight="900" fontSize="30" fill="#000000" letterSpacing="-1">
-                    TV
-                  </text>
-                  <circle cx="73" cy="16" r="15" fill="#000000" />
-                  <text x="73" y="23" fontFamily="'Arial Black', sans-serif" fontWeight="900" fontSize="18" fill="#FFFFFF" textAnchor="middle" letterSpacing="-0.5">
-                    RI
-                  </text>
-                </svg>
+                <img
+                  src="/tvri-logo.png"
+                  alt="Logo TVRI"
+                  style={{
+                    height: 36,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
               </div>
 
               <div className="tvri-doc-title-container">

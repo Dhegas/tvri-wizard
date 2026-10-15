@@ -273,6 +273,7 @@ export const SPRPrintModal: React.FC<SPRPrintModalProps> = ({ isOpen, onClose, s
             backgroundColor: '#CBD5E1',
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'flex-start',
           }}
         >
           <div
@@ -284,6 +285,9 @@ export const SPRPrintModal: React.FC<SPRPrintModalProps> = ({ isOpen, onClose, s
               backgroundColor: '#FFFFFF',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
               padding: '32px 36px',
+              marginBottom: '28px',
+              height: 'auto',
+              minHeight: 'fit-content',
               fontFamily: 'Arial, Calibri, sans-serif',
               color: '#000000',
               fontSize: 10.5,
@@ -295,15 +299,16 @@ export const SPRPrintModal: React.FC<SPRPrintModalProps> = ({ isOpen, onClose, s
             {/* Kop & Document Title */}
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 8 }}>
-                <svg width="65" height="22" viewBox="0 0 95 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <text x="0" y="26" fontFamily="'Arial Black', 'Impact', sans-serif" fontWeight="900" fontSize="30" fill="#000000" letterSpacing="-1">
-                    TV
-                  </text>
-                  <circle cx="73" cy="16" r="15" fill="#000000" />
-                  <text x="73" y="23" fontFamily="'Arial Black', sans-serif" fontWeight="900" fontSize="18" fill="#FFFFFF" textAnchor="middle" letterSpacing="-0.5">
-                    RI
-                  </text>
-                </svg>
+                <img
+                  src="/tvri-logo.png"
+                  alt="Logo TVRI"
+                  style={{
+                    height: 28,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
               </div>
               <h2
                 style={{

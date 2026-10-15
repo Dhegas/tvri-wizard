@@ -216,9 +216,10 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
             flex: 1,
             overflowY: 'auto',
             padding: '24px',
-            backgroundColor: '#E2E8F0',
+            backgroundColor: '#CBD5E1',
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'flex-start',
           }}
         >
           {/* ========================================================= */}
@@ -231,8 +232,12 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
               width: '100%',
               maxWidth: 794, // Standard A4 width at 96 DPI
               backgroundColor: '#FFFFFF',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-              padding: '28px 36px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.18)',
+              padding: '32px 38px',
+              marginBottom: '28px',
+              height: 'auto',
+              minHeight: 'fit-content',
+              boxSizing: 'border-box',
               fontFamily: 'Arial, Helvetica, sans-serif',
               color: '#000000',
               fontSize: '11px',
@@ -251,32 +256,16 @@ export const SuratPenunjukanPrintModal: React.FC<SuratPenunjukanPrintModalProps>
             >
               <div style={{ flexShrink: 0 }}>
                 {/* Official TVRI Logo */}
-                <svg width="84" height="28" viewBox="0 0 95 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <text
-                    x="0"
-                    y="26"
-                    fontFamily="'Arial Black', 'Impact', sans-serif"
-                    fontWeight="900"
-                    fontSize="30"
-                    fill="#000000"
-                    letterSpacing="-1"
-                  >
-                    TV
-                  </text>
-                  <circle cx="73" cy="16" r="15" fill="#000000" />
-                  <text
-                    x="73"
-                    y="23"
-                    fontFamily="'Arial Black', sans-serif"
-                    fontWeight="900"
-                    fontSize="18"
-                    fill="#FFFFFF"
-                    textAnchor="middle"
-                    letterSpacing="-0.5"
-                  >
-                    RI
-                  </text>
-                </svg>
+                <img
+                  src="/tvri-logo.png"
+                  alt="Logo TVRI"
+                  style={{
+                    height: 32,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
               </div>
 
               <div style={{ flex: 1, textAlign: 'center', paddingRight: 40 }}>

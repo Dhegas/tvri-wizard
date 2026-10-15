@@ -18,6 +18,8 @@ import { WizardA } from './components/WizardA';
 import { WizardB } from './components/WizardB';
 import { JadwalDinasWizard } from './components/JadwalDinasWizard';
 import { RundownWizard } from './components/RundownWizard';
+import { RundownTeknikHistoryView } from './components/RundownTeknikHistoryView';
+import { JawabanRundownView } from './components/JawabanRundownView';
 import { PolaAcaraView } from './components/PolaAcaraView';
 import { SPRWizard } from './components/SPRWizard';
 import { SPRPrintModal } from './components/SPRPrintModal';
@@ -68,11 +70,13 @@ export function App() {
 
   // Sample saved assignment for direct preview if user wants
   const [previewSp, setPreviewSp] = useState<SavedAssignment | null>(null);
+  const [showTeknikRundownMatrix, setShowTeknikRundownMatrix] = useState<boolean>(false);
 
   const activeRole: UserRole = activeDivision === 'program' ? 'admin_program' : 'admin_teknik';
 
   const handleSelectDivision = (division: DivisionType) => {
     setActiveDivision(division);
+    setShowTeknikRundownMatrix(false);
   };
 
   // Handle new request submitted from Wizard A
@@ -146,6 +150,7 @@ export function App() {
         pendingAssignmentCount={pendingSprAssignmentCount}
         sprTotalCount={sprList.length}
         returnedRundownCount={returnedCount}
+        pendingRundownReviewCount={2}
         userProfile={userProfile}
         onOpenFirstLogin={() => setShowFirstLogin(true)}
       />
@@ -193,7 +198,11 @@ export function App() {
                 : activeView === 'wizard_1_jadwal'
                 ? 'Jadwal Dinas Bulanan Penyiaran (Wizard 1)'
                 : activeView === 'wizard_2_rundown'
-                ? 'Rundown Harian Penyiaran (Wizard 2)'
+                ? activeDivision === 'teknik'
+                  ? 'Highlight, Riwayat & Penugasan Kru Rundown Siaran'
+                  : 'Rundown Harian Penyiaran (Wizard 2)'
+                : activeView === 'jawaban_rundown'
+                ? 'Jawaban & Verifikasi Teknis Rundown Siaran Harian'
                 : activeView === 'wizard_3_spr'
                 ? 'Penyusunan SPR Permintaan Kru & Peralatan (Wizard 3)'
                 : activeView === 'wizard_4_assignment'
@@ -211,6 +220,7 @@ export function App() {
                 className="button-secondary"
                 onClick={() => {
                   setActiveView('dashboard');
+                  setShowTeknikRundownMatrix(false);
                   setSelectedSprForEdit(null);
                   setSelectedSprForAssignmentId(undefined);
                 }}
@@ -255,10 +265,34 @@ export function App() {
               onClose={() => setActiveView('dashboard')}
             />
           ) : activeView === 'wizard_2_rundown' ? (
-            <RundownWizard
+            activeDivision === 'teknik' && !showTeknikRundownMatrix ? (
+              <RundownTeknikHistoryView
+                currentUserRole={activeRole}
+                onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+                onOpenFullMatrix={() => setShowTeknikRundownMatrix(true)}
+                onOpenJawabanRundown={() => setActiveView('jawaban_rundown')}
+              />
+            ) : (
+              <RundownWizard
+                currentUserRole={activeRole}
+                onClose={() => {
+                  if (activeDivision === 'teknik') {
+                    setShowTeknikRundownMatrix(false);
+                  } else {
+                    setActiveView('dashboard');
+                  }
+                }}
+                onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+              />
+            )
+          ) : activeView === 'jawaban_rundown' ? (
+            <JawabanRundownView
               currentUserRole={activeRole}
+              activeDivision={activeDivision}
               onClose={() => setActiveView('dashboard')}
-              onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+              onOpenRundownDetail={(_date, _block) => {
+                setActiveView('wizard_2_rundown');
+              }}
             />
           ) : activeView === 'wizard_3_spr' ? (
             <SPRWizard
@@ -1000,6 +1034,149 @@ export function App() {
                       }}
                     >
                       <Layers size={14} /> Lihat Pola Acara
+                    </button>
+                  </div>
+
+                  {/* Rundown Siaran Teknik Card */}
+                  <div
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '18px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 1px 3px rgba(16, 27, 45, 0.04)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          backgroundColor: '#0F766E',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Radio size={22} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--ink)' }}>
+                            Rundown Siaran: Highlight & Riwayat
+                          </strong>
+                          <span
+                            style={{
+                              backgroundColor: '#CCFBF1',
+                              color: '#0F766E',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            Siaran Hari Ini
+                          </span>
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                          Highlight rundown hari ini, arsip riwayat siaran, cetak lembar tugas, dan plotting kru.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => {
+                        setShowTeknikRundownMatrix(false);
+                        setActiveView('wizard_2_rundown');
+                      }}
+                      style={{
+                        height: 38,
+                        fontSize: 12.5,
+                        padding: '0 16px',
+                        gap: 6,
+                        backgroundColor: '#0F766E',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Radio size={14} /> Buka Rundown
+                    </button>
+                  </div>
+
+                  {/* Jawaban Rundown Siaran Card */}
+                  <div
+                    style={{
+                      backgroundColor: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '18px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 1px 3px rgba(16, 27, 45, 0.04)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          backgroundColor: '#059669',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Radio size={22} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--ink)' }}>
+                            Jawaban Rundown Siaran Harian
+                          </strong>
+                          <span
+                            style={{
+                              backgroundColor: '#FEF3C7',
+                              color: '#B45309',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            2 Menunggu Respon
+                          </span>
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                          Review kelayakan teknis fasilitas MCR & pemancar atas rundown siaran harian dari Divisi Program.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => setActiveView('jawaban_rundown')}
+                      style={{
+                        height: 38,
+                        fontSize: 12.5,
+                        padding: '0 16px',
+                        gap: 6,
+                        backgroundColor: '#059669',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Radio size={14} /> Jawab Rundown (2)
                     </button>
                   </div>
                 </div>

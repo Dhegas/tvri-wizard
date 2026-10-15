@@ -178,9 +178,10 @@ export const RundownPrintModal: React.FC<RundownPrintModalProps> = ({
             flex: 1,
             overflowY: 'auto',
             padding: '30px',
-            backgroundColor: '#F1F5F9',
+            backgroundColor: '#CBD5E1',
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'flex-start',
           }}
         >
           <div
@@ -190,31 +191,31 @@ export const RundownPrintModal: React.FC<RundownPrintModalProps> = ({
               width: '100%',
               maxWidth: 820,
               backgroundColor: '#FFFFFF',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
               padding: '32px 36px',
+              marginBottom: '28px',
+              height: 'auto',
+              minHeight: 'fit-content',
               fontFamily: 'Arial, Helvetica, sans-serif',
               color: '#000000',
               fontSize: 11,
               lineHeight: 1.35,
+              boxSizing: 'border-box',
             }}
           >
             {/* Header: TVRI Logo & Document Title */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
+                <img
+                  src="/tvri-logo.png"
+                  alt="Logo TVRI"
                   style={{
-                    backgroundColor: '#1E3FA8',
-                    color: '#FFFFFF',
-                    padding: '6px 12px',
-                    borderRadius: 4,
-                    fontWeight: 900,
-                    fontSize: 22,
-                    letterSpacing: 2,
-                    fontFamily: 'sans-serif',
+                    height: 32,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
                   }}
-                >
-                  TVRI
-                </div>
+                />
               </div>
 
               <div style={{ textAlign: 'center', flex: 1 }}>
