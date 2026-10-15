@@ -9,8 +9,10 @@ import {
   Shield,
   Clock,
   ChevronRight,
+  ChevronDown,
   Layers,
   CheckSquare,
+  Archive,
 } from 'lucide-react';
 
 export type ActiveView =
@@ -73,6 +75,15 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // State to toggle visibility of archived legacy flow (v1.0)
+  const [showLegacyArchive, setShowLegacyArchive] = useState<boolean>(activeView === 'legacy_flow');
+
+  useEffect(() => {
+    if (activeView === 'legacy_flow') {
+      setShowLegacyArchive(true);
+    }
+  }, [activeView]);
 
   return (
     <aside
@@ -509,48 +520,6 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                 </button>
               </div>
             </div>
-
-            {/* Group 3: Alur Klasik Legacy */}
-            <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: '#64748B',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                  padding: '0 8px 6px',
-                }}
-              >
-                Alur Klasik (Legacy)
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onSelectView('legacy_flow')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: 'none',
-                  backgroundColor: activeView === 'legacy_flow' ? '#1E293B' : 'transparent',
-                  color: activeView === 'legacy_flow' ? '#FFFFFF' : '#94A3B8',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <CalendarCheck size={16} color="#94A3B8" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: activeView === 'legacy_flow' ? 700 : 500 }}>
-                    Formulir Wizard A
-                  </div>
-                  <div style={{ fontSize: 10.5, color: '#64748B' }}>Alur pengajuan kru lama</div>
-                </div>
-              </button>
-            </div>
           </>
         )}
 
@@ -828,20 +797,70 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                 </button>
               </div>
             </div>
+          </>
+        )}
 
-            {/* Group 3: Alur Klasik Legacy */}
-            <div>
-              <div
+        {/* 4. Arsip Alur Lama & Kompatibilitas (Collapsible Section at Bottom of Navigation) */}
+        <div
+          style={{
+            marginTop: 'auto',
+            paddingTop: 14,
+            borderTop: '1px solid #1E293B',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowLegacyArchive((prev) => !prev)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: 6,
+              border: 'none',
+              backgroundColor: showLegacyArchive ? '#1E293B' : 'transparent',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              fontSize: 11,
+              fontWeight: 600,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Archive size={14} color="#64748B" />
+              <span>Arsip Alur Lama (v1.0)</span>
+              <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: 700,
-                  color: '#64748B',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                  padding: '0 8px 6px',
+                  backgroundColor: '#334155',
+                  color: '#94A3B8',
+                  padding: '1px 5px',
+                  borderRadius: 4,
                 }}
               >
-                Alur Klasik (Legacy)
+                Legacy
+              </span>
+            </div>
+            {showLegacyArchive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {showLegacyArchive && (
+            <div
+              style={{
+                marginTop: 6,
+                padding: '8px 6px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 5,
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: 8,
+                border: '1px dashed #334155',
+              }}
+            >
+              <div style={{ fontSize: 10, color: '#64748B', padding: '0 4px 4px', lineHeight: 1.4 }}>
+                SAD v1.1 memisahkan Rundown (W2) dari SPR Produksi (W3/W4). Tampilan lama dipertahankan untuk arsip.
               </div>
 
               <button
@@ -850,28 +869,45 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
+                  gap: 8,
                   width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 8,
+                  padding: '8px 10px',
+                  borderRadius: 6,
                   border: 'none',
-                  backgroundColor: activeView === 'legacy_flow' ? '#1E293B' : 'transparent',
-                  color: activeView === 'legacy_flow' ? '#FFFFFF' : '#94A3B8',
+                  backgroundColor: activeView === 'legacy_flow' ? '#334155' : '#1E293B',
+                  color: activeView === 'legacy_flow' ? '#FFFFFF' : '#CBD5E1',
                   cursor: 'pointer',
                   textAlign: 'left',
+                  fontSize: 12,
+                  transition: 'background-color 0.15s ease',
                 }}
               >
-                <Users size={16} color="#94A3B8" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: activeView === 'legacy_flow' ? 700 : 500 }}>
-                    Plotting Wizard B
-                  </div>
-                  <div style={{ fontSize: 10.5, color: '#64748B' }}>Penugasan cepat lama</div>
-                </div>
+                {activeDivision === 'program' ? (
+                  <>
+                    <CalendarCheck size={14} color={activeView === 'legacy_flow' ? '#93C5FD' : '#94A3B8'} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: activeView === 'legacy_flow' ? 700 : 500 }}>
+                        Formulir Wizard A
+                      </div>
+                      <div style={{ fontSize: 10, color: '#94A3B8' }}>Pengajuan kru model lama</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Users size={14} color={activeView === 'legacy_flow' ? '#A7F3D0' : '#94A3B8'} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: activeView === 'legacy_flow' ? 700 : 500 }}>
+                        Plotting Wizard B
+                      </div>
+                      <div style={{ fontSize: 10, color: '#94A3B8' }}>Penugasan cepat model lama</div>
+                    </div>
+                  </>
+                )}
+                {activeView === 'legacy_flow' && <ChevronRight size={13} color="#93C5FD" />}
               </button>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 4. Footer: User Profile, Activation Trigger & Live Time WITA */}

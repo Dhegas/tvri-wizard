@@ -208,8 +208,8 @@ export function App() {
                 : activeView === 'wizard_4_assignment'
                 ? 'Penugasan Kru SPR & Surat Penunjukan (Wizard 4)'
                 : activeDivision === 'program'
-                ? 'Formulir Pengajuan Kru (Wizard A)'
-                : 'Plotting Cepat Kru (Wizard B)'}
+                ? 'Arsip Alur Lama: Formulir Pengajuan Kru (Wizard A v1.0)'
+                : 'Arsip Alur Lama: Plotting Cepat Kru (Wizard B v1.0)'}
             </span>
           </div>
 
@@ -339,28 +339,69 @@ export function App() {
               }}
             />
           ) : activeView === 'legacy_flow' ? (
-            activeDivision === 'program' ? (
-              <WizardA
-                key={`wizard-a-${activeProgramType}`}
-                onSuccessSubmit={handleNewRequest}
-                onGoToRundown={() => {
-                  setActiveDivision('teknik');
-                  setActiveView('wizard_2_rundown');
+            <div>
+              {/* Compatibility / Legacy Flow Information Banner */}
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: '14px 18px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: '#FEF3C7',
+                  border: '1px solid #FCD34D',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  boxShadow: '0 2px 8px rgba(180, 83, 9, 0.08)',
                 }}
-                existingRequests={requests}
-                programType={activeProgramType}
-                onProgramTypeChange={setActiveProgramType}
-              />
-            ) : (
-              <WizardB
-                key={`wizard-b-${activeProgramType}`}
-                requests={requests}
-                onAssignmentComplete={handleAssignmentComplete}
-                onSendBackToProgram={handleSendBackToProgram}
-                programType={activeProgramType}
-                onProgramTypeChange={setActiveProgramType}
-              />
-            )
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#92400E' }}>
+                      Mode Arsip & Kompatibilitas Alur Lama (v1.0)
+                    </div>
+                    <div style={{ fontSize: 12, color: '#B45309', marginTop: 2, lineHeight: 1.5 }}>
+                      Formulir ini dipertahankan sebagai arsip data. Sesuai standar operasional <strong>SAD v1.1</strong>, kru siaran harian kini otomatis terbentuk dari Jadwal Dinas bulanan tanpa meminta kru di Rundown, dan kebutuhan kru hanya diajukan untuk produksi lewat <strong>SPR</strong>.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="button-primary"
+                  style={{ height: 36, fontSize: 12.5, padding: '0 16px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  onClick={() =>
+                    setActiveView(activeDivision === 'program' ? 'wizard_2_rundown' : 'wizard_4_assignment')
+                  }
+                >
+                  Buka Alur Resmi SAD v1.1 →
+                </button>
+              </div>
+
+              {activeDivision === 'program' ? (
+                <WizardA
+                  key={`wizard-a-${activeProgramType}`}
+                  onSuccessSubmit={handleNewRequest}
+                  onGoToRundown={() => {
+                    setActiveDivision('teknik');
+                    setActiveView('wizard_2_rundown');
+                  }}
+                  existingRequests={requests}
+                  programType={activeProgramType}
+                  onProgramTypeChange={setActiveProgramType}
+                />
+              ) : (
+                <WizardB
+                  key={`wizard-b-${activeProgramType}`}
+                  requests={requests}
+                  onAssignmentComplete={handleAssignmentComplete}
+                  onSendBackToProgram={handleSendBackToProgram}
+                  programType={activeProgramType}
+                  onProgramTypeChange={setActiveProgramType}
+                />
+              )}
+            </div>
           ) : (
             /* Dashboard View: Separate UX for Program vs Teknik */
             <div>
