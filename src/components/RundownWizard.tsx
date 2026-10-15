@@ -29,6 +29,7 @@ import type {
   InsertType,
   BroadcastCrewRosterItem,
   UserRole,
+  DutySchedule,
 } from '../types';
 import {
   MOCK_DAILY_RUNDOWNS,
@@ -52,6 +53,7 @@ interface RundownWizardProps {
   onOpenJadwalDinas?: () => void;
   initialDate?: string;
   initialBlock?: 'Pagi' | 'Sore';
+  dutySchedule?: DutySchedule | null;
 }
 
 const BROADCAST_SOURCES: BroadcastSourceType[] = [
@@ -137,211 +139,13 @@ function generatePolaAcaraPrograms(block: 'Pagi' | 'Sore', date: string = '2026-
   return getPolaAcaraForDateAndBlock(date, block);
 }
 
-export function _legacyGeneratePolaAcaraPrograms(block: 'Pagi' | 'Sore'): RundownProgramRow[] {
-  if (block === 'Pagi') {
-    return [
-      {
-        id: 'pola-pagi-1',
-        mataAcara: 'Warta Nusantara Pagi',
-        tayang: 'Live',
-        jamMulai: '06:00:00',
-        durasi: '0:30:00',
-        jamSelesai: '06:30:00',
-        sumber: 'Live Studio 1',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 1 (Utama - Live & Berita)',
-        catatan: 'Live news pembuka siaran pagi TVRI Bali',
-        fromPolaAcara: true,
-        sisipanList: [
-          { id: 'ins-p-1', jenis: 'ID', jamMulai: '06:00:00', durasi: '0:00:15', jamSelesai: '06:00:15', sumber: 'Storage 3' },
-          { id: 'ins-p-2', jenis: 'Endtag', jamMulai: '06:29:45', durasi: '0:00:15', jamSelesai: '06:30:00', sumber: 'Storage 3' },
-        ],
-      },
-      {
-        id: 'pola-pagi-2',
-        mataAcara: 'Nyurya Sewana',
-        tayang: 'Rerun',
-        jamMulai: '06:30:00',
-        durasi: '0:30:00',
-        jamSelesai: '07:00:00',
-        sumber: 'Storage 3',
-        sumberCategory: 'Playback',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-3',
-        mataAcara: 'Gatra Bali Pagi',
-        tayang: 'Live',
-        jamMulai: '07:00:00',
-        durasi: '0:30:00',
-        jamSelesai: '07:30:00',
-        sumber: 'Live Studio 1',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 1 (Utama - Live & Berita)',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-4',
-        mataAcara: 'Semeton Dewata',
-        tayang: 'Rerun',
-        jamMulai: '07:30:00',
-        durasi: '0:30:00',
-        jamSelesai: '08:00:00',
-        sumber: 'Playbox 3',
-        sumberCategory: 'Playback',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-5',
-        mataAcara: 'Antar Nusa',
-        tayang: 'Live',
-        jamMulai: '08:00:00',
-        durasi: '1:00:00',
-        jamSelesai: '09:00:00',
-        sumber: 'Relay nasional',
-        sumberCategory: 'Relay',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-6',
-        mataAcara: 'Mimbar Agama Hindu',
-        tayang: 'Rerun',
-        jamMulai: '11:00:00',
-        durasi: '0:30:00',
-        jamSelesai: '11:30:00',
-        sumber: 'Storage 3',
-        sumberCategory: 'Playback',
-        lokasi: 'Studio 3 (Podcast & Mimbar Agama)',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-7',
-        mataAcara: 'Seputar Bali Siang',
-        tayang: 'Live',
-        jamMulai: '11:30:00',
-        durasi: '0:30:00',
-        jamSelesai: '12:00:00',
-        sumber: 'Live Studio 1',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 1 (Utama - Live & Berita)',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-pagi-8',
-        mataAcara: 'Indonesia Siang',
-        tayang: 'Live',
-        jamMulai: '12:00:00',
-        durasi: '1:00:00',
-        jamSelesai: '13:00:00',
-        sumber: 'Relay nasional',
-        sumberCategory: 'Relay',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-    ];
-  } else {
-    // Sore Block (16:00 - 24:00 WITA)
-    return [
-      {
-        id: 'pola-sore-1',
-        mataAcara: 'Balivision',
-        tayang: 'Live',
-        jamMulai: '16:00:00',
-        durasi: '0:24:00',
-        jamSelesai: '16:24:00',
-        sumber: 'Live Studio 2',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 2 (Musik & Budaya)',
-        catatan: 'Segmen dialog seni kerajinan perak Celuk',
-        fromPolaAcara: true,
-        sisipanList: [
-          { id: 'ins-s-1', jenis: 'ID', jamMulai: '16:00:00', durasi: '0:00:15', jamSelesai: '16:00:15', sumber: 'Storage 3' },
-          { id: 'ins-s-2', jenis: 'Sting', jamMulai: '16:12:00', durasi: '0:00:10', jamSelesai: '16:12:10', sumber: 'Storage 3' },
-          { id: 'ins-s-3', jenis: 'Endtag', jamMulai: '16:23:45', durasi: '0:00:15', jamSelesai: '16:24:00', sumber: 'Storage 3' },
-        ],
-      },
-      {
-        id: 'pola-sore-2',
-        mataAcara: 'Mimbar Agama Budha',
-        tayang: 'Live',
-        jamMulai: '16:30:00',
-        durasi: '0:25:00',
-        jamSelesai: '16:55:00',
-        sumber: 'Live Studio 3',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 3 (Podcast & Mimbar Agama)',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-sore-3',
-        mataAcara: 'Bali Hari Ini',
-        tayang: 'Live',
-        jamMulai: '17:00:00',
-        durasi: '0:48:00',
-        jamSelesai: '17:48:00',
-        sumber: 'Live Studio 1',
-        sumberCategory: 'Live',
-        lokasi: 'Studio 1 (Utama - Live & Berita)',
-        catatan: 'Live news utama TVRI Stasiun Bali',
-        fromPolaAcara: true,
-        sisipanList: [
-          { id: 'ins-s-4', jenis: 'ID', jamMulai: '17:00:00', durasi: '0:00:30', jamSelesai: '17:00:30', sumber: 'Storage 3' },
-          { id: 'ins-s-5', jenis: 'PSA atau promo', jamMulai: '17:25:00', durasi: '0:01:00', jamSelesai: '17:26:00', sumber: 'Playbox 4' },
-        ],
-      },
-      {
-        id: 'pola-sore-4',
-        mataAcara: 'Puja Tri Sandhya & Kidung Suci',
-        tayang: 'Rerun',
-        jamMulai: '18:00:00',
-        durasi: '0:15:00',
-        jamSelesai: '18:15:00',
-        sumber: 'Storage 3',
-        sumberCategory: 'Playback',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-sore-5',
-        mataAcara: 'Indonesia Bicara',
-        tayang: 'Live',
-        jamMulai: '19:30:00',
-        durasi: '1:00:00',
-        jamSelesai: '20:30:00',
-        sumber: 'Relay nasional',
-        sumberCategory: 'Relay',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-      {
-        id: 'pola-sore-6',
-        mataAcara: 'Title Box & Penutup Siaran',
-        tayang: 'Rerun',
-        jamMulai: '23:45:00',
-        durasi: '0:15:00',
-        jamSelesai: '24:00:00',
-        sumber: 'Title Box',
-        sumberCategory: 'Titlebox',
-        fromPolaAcara: true,
-        sisipanList: [],
-      },
-    ];
-  }
-}
-
 export const RundownWizard: React.FC<RundownWizardProps> = ({
   currentUserRole,
   onClose,
   onOpenJadwalDinas,
   initialDate = '2026-10-12',
   initialBlock = 'Sore',
+  dutySchedule = null,
 }) => {
   // Stepper State: R1 -> R2 -> R3 -> R4 -> SUCCESS
   const [currentStep, setCurrentStep] = useState<'R1' | 'R2' | 'R3' | 'R4' | 'SUCCESS'>('R1');
@@ -658,7 +462,7 @@ export const RundownWizard: React.FC<RundownWizardProps> = ({
     const rawRoster = deriveBroadcastCrewRoster(
       selectedDate,
       selectedBlock,
-      MOCK_DUTY_SCHEDULE,
+      dutySchedule || MOCK_DUTY_SCHEDULE,
       MASTER_EMPLOYEES
     );
 
@@ -680,7 +484,7 @@ export const RundownWizard: React.FC<RundownWizardProps> = ({
       }
       return item;
     });
-  }, [selectedDate, selectedBlock, namaTampilRias, namaTampilArtistik]);
+  }, [selectedDate, selectedBlock, namaTampilRias, namaTampilArtistik, dutySchedule]);
 
   // Total inserts count across all programs
   const totalInsertsCount = useMemo(() => {

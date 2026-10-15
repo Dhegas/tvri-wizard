@@ -17,8 +17,12 @@ import type { ActiveView, DivisionType } from './components/SideNavbar';
 import { WizardA } from './components/WizardA';
 import { WizardB } from './components/WizardB';
 import { JadwalDinasWizard } from './components/JadwalDinasWizard';
+import { JadwalDinasMonthlyDocumentView } from './components/JadwalDinasMonthlyDocumentView';
+import type { DutyJobGroup } from './types';
 import { RundownWizard } from './components/RundownWizard';
+import { RundownProgramListView } from './components/RundownProgramListView';
 import { RundownTeknikHistoryView } from './components/RundownTeknikHistoryView';
+import type { DailyRundown } from './types';
 import { JawabanRundownView } from './components/JawabanRundownView';
 import { PolaAcaraView } from './components/PolaAcaraView';
 import { SPRWizard } from './components/SPRWizard';
@@ -39,6 +43,7 @@ import type {
   UserRole,
   SPRDocument,
   SPRAssignmentDocument,
+  DutySchedule,
 } from './types';
 
 export function App() {
@@ -47,6 +52,9 @@ export function App() {
   const [activeProgramType, setActiveProgramType] = useState<'penyiaran' | 'produksi'>('penyiaran');
   const [requests, setRequests] = useState<CrewRequest[]>(INITIAL_REQUESTS);
   const [sprList, setSprList] = useState<SPRDocument[]>(MOCK_SPR_DOCUMENTS);
+  const [dutySchedule, setDutySchedule] = useState<DutySchedule>(() =>
+    JSON.parse(JSON.stringify(MOCK_DUTY_SCHEDULE))
+  );
   const [showFirstLogin, setShowFirstLogin] = useState<boolean>(false);
   const [selectedSprForAssignmentId, setSelectedSprForAssignmentId] = useState<string | undefined>(undefined);
   const [selectedSprForEdit, setSelectedSprForEdit] = useState<SPRDocument | null>(null);
@@ -71,12 +79,22 @@ export function App() {
   // Sample saved assignment for direct preview if user wants
   const [previewSp, setPreviewSp] = useState<SavedAssignment | null>(null);
   const [showTeknikRundownMatrix, setShowTeknikRundownMatrix] = useState<boolean>(false);
+  const [isEditingJadwalWizard, setIsEditingJadwalWizard] = useState<boolean>(false);
+  const [editingDutyGroup, setEditingDutyGroup] = useState<DutyJobGroup>('Teknisi Siaran');
+  const [isEditingRundownWizard, setIsEditingRundownWizard] = useState<boolean>(false);
+  const [selectedRundownParams, setSelectedRundownParams] = useState<{
+    date: string;
+    block: 'Pagi' | 'Sore';
+    existing?: DailyRundown;
+  } | null>(null);
 
   const activeRole: UserRole = activeDivision === 'program' ? 'admin_program' : 'admin_teknik';
 
   const handleSelectDivision = (division: DivisionType) => {
     setActiveDivision(division);
     setShowTeknikRundownMatrix(false);
+    setIsEditingJadwalWizard(false);
+    setIsEditingRundownWizard(false);
   };
 
   // Handle new request submitted from Wizard A
@@ -146,7 +164,10 @@ export function App() {
         activeDivision={activeDivision}
         onSelectDivision={handleSelectDivision}
         activeView={activeView}
-        onSelectView={(view) => setActiveView(view)}
+        onSelectView={(view) => {
+          setActiveView(view);
+          setIsEditingJadwalWizard(false);
+        }}
         pendingAssignmentCount={pendingSprAssignmentCount}
         sprTotalCount={sprList.length}
         returnedRundownCount={returnedCount}
@@ -196,11 +217,15 @@ export function App() {
                 : activeView === 'pola_acara'
                 ? 'Pola Acara Stasiun & Master Grid Penyiaran (Oktober 2026)'
                 : activeView === 'wizard_1_jadwal'
-                ? 'Jadwal Dinas Bulanan Penyiaran (Wizard 1)'
+                ? isEditingJadwalWizard
+                  ? 'Penyusunan Jadwal Dinas Bulanan (Wizard 1)'
+                  : 'Dokumen Jadwal Dinas Operasional Teknik & Penyiaran Bulanan'
                 : activeView === 'wizard_2_rundown'
                 ? activeDivision === 'teknik'
                   ? 'Highlight, Riwayat & Penugasan Kru Rundown Siaran'
-                  : 'Rundown Harian Penyiaran (Wizard 2)'
+                  : isEditingRundownWizard
+                  ? 'Penyusunan Rundown Harian Penyiaran (Wizard 2)'
+                  : 'Daftar Dokumen Rundown Penyelenggaraan Siaran Harian'
                 : activeView === 'jawaban_rundown'
                 ? 'Jawaban & Verifikasi Teknis Rundown Siaran Harian'
                 : activeView === 'wizard_3_spr'
@@ -214,6 +239,28 @@ export function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {activeView === 'wizard_1_jadwal' && isEditingJadwalWizard && (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => setIsEditingJadwalWizard(false)}
+                style={{ height: 34, fontSize: 12.5, padding: '0 14px', gap: 6 }}
+              >
+                ← Kembali ke Dokumen Bulanan
+              </button>
+            )}
+
+            {activeView === 'wizard_2_rundown' && activeDivision === 'program' && isEditingRundownWizard && (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => setIsEditingRundownWizard(false)}
+                style={{ height: 34, fontSize: 12.5, padding: '0 14px', gap: 6 }}
+              >
+                ← Kembali ke Daftar Rundown
+              </button>
+            )}
+
             {activeView !== 'dashboard' && (
               <button
                 type="button"
@@ -221,6 +268,8 @@ export function App() {
                 onClick={() => {
                   setActiveView('dashboard');
                   setShowTeknikRundownMatrix(false);
+                  setIsEditingJadwalWizard(false);
+                  setIsEditingRundownWizard(false);
                   setSelectedSprForEdit(null);
                   setSelectedSprForAssignmentId(undefined);
                 }}
@@ -248,8 +297,21 @@ export function App() {
           {activeView === 'pola_acara' ? (
             <PolaAcaraView
               currentUserRole={activeRole}
-              onGoToRundownWithDay={(_day, _block) => {
+              onGoToRundownWithDay={(day, block) => {
                 setActiveDivision('program');
+                // Calculate date for the day if within October 2026
+                const dayMap: Record<string, string> = {
+                  Senin: '2026-10-12',
+                  Selasa: '2026-10-13',
+                  Rabu: '2026-10-14',
+                  Kamis: '2026-10-15',
+                  Jumat: '2026-10-16',
+                  Sabtu: '2026-10-17',
+                  Minggu: '2026-10-18',
+                };
+                const targetDate = dayMap[day] || '2026-10-12';
+                setSelectedRundownParams({ date: targetDate, block });
+                setIsEditingRundownWizard(true);
                 setActiveView('wizard_2_rundown');
               }}
               onGoToSprWithProgram={(programName, format, duration) => {
@@ -260,29 +322,79 @@ export function App() {
               }}
             />
           ) : activeView === 'wizard_1_jadwal' ? (
-            <JadwalDinasWizard
-              currentUserRole={activeRole}
-              onClose={() => setActiveView('dashboard')}
-            />
-          ) : activeView === 'wizard_2_rundown' ? (
-            activeDivision === 'teknik' && !showTeknikRundownMatrix ? (
-              <RundownTeknikHistoryView
+            isEditingJadwalWizard ? (
+              <JadwalDinasWizard
                 currentUserRole={activeRole}
-                onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
-                onOpenFullMatrix={() => setShowTeknikRundownMatrix(true)}
-                onOpenJawabanRundown={() => setActiveView('jawaban_rundown')}
+                initialStep={2}
+                initialGroup={editingDutyGroup}
+                onClose={() => setIsEditingJadwalWizard(false)}
+                schedule={dutySchedule}
+                onChangeSchedule={(newSchedule) => setDutySchedule(newSchedule)}
+                onSuccessPublish={(newSchedule) => {
+                  setDutySchedule(newSchedule);
+                  setIsEditingJadwalWizard(false);
+                }}
               />
             ) : (
+              <JadwalDinasMonthlyDocumentView
+                currentUserRole={activeRole}
+                dutySchedule={dutySchedule}
+                onOpenWizard={(group) => {
+                  if (group) setEditingDutyGroup(group);
+                  setIsEditingJadwalWizard(true);
+                }}
+                onClose={() => setActiveView('dashboard')}
+              />
+            )
+          ) : activeView === 'wizard_2_rundown' ? (
+            activeDivision === 'teknik' ? (
+              !showTeknikRundownMatrix ? (
+                <RundownTeknikHistoryView
+                  currentUserRole={activeRole}
+                  onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+                  onOpenFullMatrix={() => setShowTeknikRundownMatrix(true)}
+                  onOpenJawabanRundown={() => setActiveView('jawaban_rundown')}
+                />
+              ) : (
+                <RundownWizard
+                  currentUserRole={activeRole}
+                  onClose={() => {
+                    setShowTeknikRundownMatrix(false);
+                  }}
+                  onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+                  dutySchedule={dutySchedule}
+                />
+              )
+            ) : isEditingRundownWizard ? (
               <RundownWizard
                 currentUserRole={activeRole}
+                initialDate={selectedRundownParams?.date || '2026-10-12'}
+                initialBlock={selectedRundownParams?.block || 'Sore'}
                 onClose={() => {
-                  if (activeDivision === 'teknik') {
-                    setShowTeknikRundownMatrix(false);
-                  } else {
-                    setActiveView('dashboard');
-                  }
+                  setIsEditingRundownWizard(false);
+                  setSelectedRundownParams(null);
                 }}
-                onOpenJadwalDinas={() => setActiveView('wizard_1_jadwal')}
+                dutySchedule={dutySchedule}
+              />
+            ) : (
+              <RundownProgramListView
+                currentUserRole={activeRole}
+                onOpenCreateWizard={(date, block) => {
+                  setSelectedRundownParams({
+                    date: date || '2026-10-12',
+                    block: block || 'Pagi',
+                  });
+                  setIsEditingRundownWizard(true);
+                }}
+                onOpenEditWizard={(rd) => {
+                  setSelectedRundownParams({
+                    date: rd.tanggal,
+                    block: rd.blok,
+                    existing: rd,
+                  });
+                  setIsEditingRundownWizard(true);
+                }}
+                onGoToPolaAcara={() => setActiveView('pola_acara')}
               />
             )
           ) : activeView === 'jawaban_rundown' ? (
@@ -322,7 +434,7 @@ export function App() {
             <SPRAssignmentWizard
               currentUserRole={activeRole}
               initialSprId={selectedSprForAssignmentId}
-              dutySchedule={MOCK_DUTY_SCHEDULE}
+              dutySchedule={dutySchedule}
               allSPRs={sprList}
               onClose={() => {
                 setActiveView('dashboard');

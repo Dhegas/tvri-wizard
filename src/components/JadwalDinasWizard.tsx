@@ -34,27 +34,37 @@ interface JadwalDinasWizardProps {
   currentUserRole?: UserRole;
   onClose?: () => void;
   onSuccessPublish?: (schedule: DutySchedule) => void;
+  schedule?: DutySchedule;
+  onChangeSchedule?: (schedule: DutySchedule) => void;
+  initialStep?: number;
+  initialGroup?: DutyJobGroup;
 }
 
 export function JadwalDinasWizard({
   currentUserRole = 'admin_teknik',
   onClose,
   onSuccessPublish,
+  schedule: scheduleProp,
+  onChangeSchedule,
+  initialStep = 1,
+  initialGroup = 'Teknisi Siaran',
 }: JadwalDinasWizardProps) {
   // Step state: 1: Bulan & Sumber, 2: Grid Kode, 3: Pemeriksaan, 4: Tinjau & Terbitkan, 5: Sukses
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(initialStep);
 
   // Month & Source state (J1)
   const [selectedMonth, setSelectedMonth] = useState<string>('2026-10');
   const [sourceType, setSourceType] = useState<'kosong' | 'salin'>('kosong');
 
-  // Schedule state (deep copy of mock data)
+  // Schedule state (deep copy of prop or mock data)
   const [schedule, setSchedule] = useState<DutySchedule>(() => {
-    return JSON.parse(JSON.stringify(MOCK_DUTY_SCHEDULE));
+    return scheduleProp
+      ? JSON.parse(JSON.stringify(scheduleProp))
+      : JSON.parse(JSON.stringify(MOCK_DUTY_SCHEDULE));
   });
 
   // J2 UI states
-  const [activeGroup, setActiveGroup] = useState<DutyJobGroup>('Teknisi Siaran');
+  const [activeGroup, setActiveGroup] = useState<DutyJobGroup>(initialGroup);
   const [viewMode, setViewMode] = useState<'bulan' | 'tanggal'>('bulan');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('2026-10-12');
   const [saveStatusText, setSaveStatusText] = useState<string>('Tersimpan otomatis');
@@ -197,6 +207,7 @@ export function JadwalDinasWizard({
         next.auditTrail = [newAuditItem, ...(next.auditTrail || [])];
       }
 
+      onChangeSchedule?.(next);
       return next;
     });
 
@@ -234,6 +245,7 @@ export function JadwalDinasWizard({
         cur.setDate(cur.getDate() + 1);
       }
 
+      onChangeSchedule?.(next);
       return next;
     });
 
@@ -252,6 +264,7 @@ export function JadwalDinasWizard({
       if (next.assignments[employee.id]) {
         delete next.assignments[employee.id][date];
       }
+      onChangeSchedule?.(next);
       return next;
     });
     setActiveCell(null);
@@ -267,6 +280,7 @@ export function JadwalDinasWizard({
     };
     setSchedule(published);
     setCurrentStep(5); // Success confirmation step
+    onChangeSchedule?.(published);
     if (onSuccessPublish) {
       onSuccessPublish(published);
     }

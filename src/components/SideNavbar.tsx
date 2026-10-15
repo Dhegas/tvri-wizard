@@ -199,7 +199,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
             onClick={() => {
               onSelectDivision('program');
               // If currently in a technical-only view, switch to dashboard
-              if (activeView === 'wizard_4_assignment' || activeView === 'legacy_flow') {
+              if (activeView === 'wizard_1_jadwal' || activeView === 'wizard_4_assignment' || activeView === 'legacy_flow') {
                 onSelectView('dashboard');
               }
             }}
@@ -299,7 +299,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
         {/* Navigation Group for DIVISI PROGRAM */}
         {activeDivision === 'program' && (
           <>
-            {/* Group 1: Program Penyiaran */}
+            {/* Group 1: Perencanaan Siaran (Pola Acara Master) */}
             <div>
               <div
                 style={{
@@ -311,7 +311,7 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                   padding: '0 8px 6px',
                 }}
               >
-                Siaran Harian (Penyiaran)
+                Perencanaan Siaran
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -327,25 +327,43 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                     padding: '10px 12px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: activeView === 'pola_acara' ? '#1E3FA8' : 'transparent',
+                    backgroundColor: activeView === 'pola_acara' ? '#7C3AED' : 'transparent',
                     color: activeView === 'pola_acara' ? '#FFFFFF' : '#CBD5E1',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <Layers size={16} color={activeView === 'pola_acara' ? '#93C5FD' : '#94A3B8'} />
+                  <Layers size={16} color={activeView === 'pola_acara' ? '#DDD6FE' : '#A78BFA'} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: activeView === 'pola_acara' ? 700 : 500 }}>
                       Pola Acara Stasiun
                     </div>
-                    <div style={{ fontSize: 10.5, color: activeView === 'pola_acara' ? '#DBEAFE' : '#64748B' }}>
-                      Oktober 2026 (Acuan Rundown)
+                    <div style={{ fontSize: 10.5, color: activeView === 'pola_acara' ? '#EDE9FE' : '#64748B' }}>
+                      Oktober 2026 (Master Penyiaran)
                     </div>
                   </div>
-                  {activeView === 'pola_acara' && <ChevronRight size={14} color="#93C5FD" />}
+                  {activeView === 'pola_acara' && <ChevronRight size={14} color="#DDD6FE" />}
                 </button>
+              </div>
+            </div>
 
+            {/* Group 2: Operasional Penyiaran */}
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  padding: '0 8px 6px',
+                }}
+              >
+                Operasional Penyiaran
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {/* Wizard 2: Rundown Harian */}
                 <button
                   type="button"
@@ -358,23 +376,23 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                     padding: '10px 12px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: activeView === 'wizard_2_rundown' ? '#1E3FA8' : 'transparent',
+                    backgroundColor: activeView === 'wizard_2_rundown' ? '#7C3AED' : 'transparent',
                     color: activeView === 'wizard_2_rundown' ? '#FFFFFF' : '#CBD5E1',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <Radio size={16} color={activeView === 'wizard_2_rundown' ? '#93C5FD' : '#94A3B8'} />
+                  <Radio size={16} color={activeView === 'wizard_2_rundown' ? '#DDD6FE' : '#A78BFA'} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: activeView === 'wizard_2_rundown' ? 700 : 500 }}>
                       Rundown Harian (W2)
                     </div>
-                    <div style={{ fontSize: 10.5, color: activeView === 'wizard_2_rundown' ? '#DBEAFE' : '#64748B' }}>
-                      Strip waktu & kerabat siaran
+                    <div style={{ fontSize: 10.5, color: activeView === 'wizard_2_rundown' ? '#EDE9FE' : '#64748B' }}>
+                      Strip waktu & format siaran
                     </div>
                   </div>
-                  {activeView === 'wizard_2_rundown' && <ChevronRight size={14} color="#93C5FD" />}
+                  {activeView === 'wizard_2_rundown' && <ChevronRight size={14} color="#DDD6FE" />}
                 </button>
 
                 {/* Status Jawaban Teknik Rundown (Untuk Program) */}
@@ -389,54 +407,23 @@ export const SideNavbar: React.FC<SideNavbarProps> = ({
                     padding: '10px 12px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: activeView === 'jawaban_rundown' ? '#1E3FA8' : 'transparent',
+                    backgroundColor: activeView === 'jawaban_rundown' ? '#7C3AED' : 'transparent',
                     color: activeView === 'jawaban_rundown' ? '#FFFFFF' : '#CBD5E1',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <CheckSquare size={16} color={activeView === 'jawaban_rundown' ? '#93C5FD' : '#94A3B8'} />
+                  <CheckSquare size={16} color={activeView === 'jawaban_rundown' ? '#DDD6FE' : '#A78BFA'} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: activeView === 'jawaban_rundown' ? 700 : 500 }}>
                       Jawaban Teknik Rundown
                     </div>
-                    <div style={{ fontSize: 10.5, color: activeView === 'jawaban_rundown' ? '#DBEAFE' : '#64748B' }}>
+                    <div style={{ fontSize: 10.5, color: activeView === 'jawaban_rundown' ? '#EDE9FE' : '#64748B' }}>
                       Status verifikasi & kesiapan
                     </div>
                   </div>
-                  {activeView === 'jawaban_rundown' && <ChevronRight size={14} color="#93C5FD" />}
-                </button>
-
-                {/* View Jadwal Dinas (Wizard 1 read-only / coordination) */}
-                <button
-                  type="button"
-                  onClick={() => onSelectView('wizard_1_jadwal')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    border: 'none',
-                    backgroundColor: activeView === 'wizard_1_jadwal' ? '#1E3FA8' : 'transparent',
-                    color: activeView === 'wizard_1_jadwal' ? '#FFFFFF' : '#CBD5E1',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background-color 0.15s ease',
-                  }}
-                >
-                  <Calendar size={16} color={activeView === 'wizard_1_jadwal' ? '#93C5FD' : '#94A3B8'} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: activeView === 'wizard_1_jadwal' ? 700 : 500 }}>
-                      Jadwal Dinas Siaran
-                    </div>
-                    <div style={{ fontSize: 10.5, color: activeView === 'wizard_1_jadwal' ? '#DBEAFE' : '#64748B' }}>
-                      Lihat jadwal bulanan siaran
-                    </div>
-                  </div>
-                  {activeView === 'wizard_1_jadwal' && <ChevronRight size={14} color="#93C5FD" />}
+                  {activeView === 'jawaban_rundown' && <ChevronRight size={14} color="#DDD6FE" />}
                 </button>
               </div>
             </div>
